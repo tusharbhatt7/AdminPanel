@@ -1,0 +1,23 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default rule: deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Rules for drivers collection
+    match /drivers/{driverId} {
+      // Allow read/write access for development. 
+      // TODO: Restrict this to authenticated admins later via request.auth != null && request.auth.token.admin == true
+      allow read, write: if true; 
+    }
+
+    // Rules for subscriptions collection
+    match /subscriptions/{subId} {
+      allow read, write: if true;
+    }
+  }
+}
