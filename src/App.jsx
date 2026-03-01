@@ -47,6 +47,11 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);
@@ -54,6 +59,35 @@ function App() {
 
     return unsubscribe;
   }, []);
+
+  // Show a helpful error screen if Vercel environment variables are missing
+  if (!auth && !loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6 text-center">
+        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-xl border border-rose-100">
+          <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold">!</div>
+          <h1 className="text-2xl font-bold text-slate-800 mb-2">Missing Firebase Connection</h1>
+          <p className="text-slate-600 mb-6 leading-relaxed">
+            The application cannot connect to Firebase. It looks like the <strong className="text-slate-800">Environment Variables</strong> have not been configured in Vercel.
+          </p>
+          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-left text-sm font-mono overflow-auto mb-6 text-slate-600">
+            Ensure the following keys are set in your Vercel Dashboard:<br /><br />
+            - VITE_FIREBASE_API_KEY<br />
+            - VITE_FIREBASE_AUTH_DOMAIN<br />
+            - VITE_FIREBASE_DATABASE_URL<br />
+            - VITE_FIREBASE_PROJECT_ID<br />
+            - VITE_FIREBASE_STORAGE_BUCKET<br />
+            - VITE_FIREBASE_MESSAGING_SENDER_ID<br />
+            - VITE_FIREBASE_APP_ID<br />
+            - VITE_FIREBASE_MEASUREMENT_ID
+          </div>
+          <p className="text-sm border border-amber-200 bg-amber-50 text-amber-800 p-3 rounded-lg">
+            <strong>Note:</strong> After saving these keys in Vercel, you <strong>MUST trigger a new redeployment</strong> for changes to take effect!
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>

@@ -15,7 +15,9 @@ const firebaseConfig = {
     measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+const isConfigValid = !!firebaseConfig.apiKey && firebaseConfig.apiKey !== 'your_api_key_here';
+
+const app = isConfigValid ? initializeApp(firebaseConfig) : null;
+export const auth = isConfigValid ? getAuth(app) : null;
+export const db = isConfigValid ? getFirestore(app) : null;
+export const storage = isConfigValid ? getStorage(app) : null;
