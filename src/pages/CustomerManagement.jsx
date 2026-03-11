@@ -82,22 +82,22 @@ export default function CustomerManagement() {
     };
 
     return (
-        <div className="flex flex-col h-full space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="flex flex-col h-full space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Customer Management</h1>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Customer Management</h1>
+                    <p className="mt-1 text-xs sm:text-sm text-slate-500">
                         View and search through registered customer profiles.
                     </p>
                 </div>
-                <button className="px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-primary-600 hover:bg-primary-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                <button className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-primary-600 hover:bg-primary-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
                     Export Data
                 </button>
             </div>
 
-            <div className="flex flex-col flex-1 p-6 bg-white border rounded-xl border-slate-200 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="relative w-full max-w-sm">
+            <div className="flex flex-col flex-1 p-4 sm:p-6 bg-white border rounded-xl border-slate-200 shadow-sm">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 sm:gap-0 mb-4 sm:mb-6">
+                    <div className="relative w-full sm:max-w-sm">
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                             <Search className="w-5 h-5 text-slate-400" />
                         </div>
@@ -109,13 +109,13 @@ export default function CustomerManagement() {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <div className="text-sm text-slate-500">
+                    <div className="text-sm text-slate-500 text-right sm:text-left">
                         Total Customers: <span className="font-semibold text-slate-900">{filteredCustomers.length}</span>
                     </div>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-x-auto border rounded-xl border-slate-200">
-                    <table className="min-w-full divide-y divide-slate-200">
+                <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto sm:border rounded-xl border-slate-200">
+                    <table className="hidden md:table min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50 sticky top-0 z-10">
                             <tr>
                                 <th scope="col" className="px-6 py-4 text-xs font-semibold tracking-wider text-left text-slate-500 uppercase">
@@ -223,6 +223,86 @@ export default function CustomerManagement() {
                             )}
                         </tbody>
                     </table>
+
+                    {/* Mobile Card Layout */}
+                    <div className="md:hidden grid grid-cols-1 gap-4 pb-20">
+                        {loading ? (
+                            <div className="py-16 text-center text-sm text-slate-500 border rounded-xl bg-slate-50 border-slate-100">
+                                <div className="flex flex-col items-center justify-center">
+                                    <div className="w-8 h-8 mb-4 border-4 border-primary-200 rounded-full border-t-primary-600 animate-spin"></div>
+                                    <p className="font-medium">Loading customers...</p>
+                                </div>
+                            </div>
+                        ) : filteredCustomers.length === 0 ? (
+                            <div className="py-16 text-center text-sm text-slate-500 border rounded-xl bg-slate-50 border-slate-100">
+                                <div className="flex flex-col items-center justify-center bg-white mx-auto w-16 h-16 rounded-full mb-3 shadow-sm border border-slate-100">
+                                    <Search className="w-6 h-6 text-slate-400" />
+                                </div>
+                                <p className="font-medium text-slate-900">No customers found</p>
+                                <p className="mt-1">Try adjusting your search query.</p>
+                            </div>
+                        ) : (
+                            filteredCustomers.map((customer) => (
+                                <div
+                                    key={customer.id}
+                                    onClick={() => handleRowClick(customer)}
+                                    className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                                >
+                                    <div className="flex items-center mb-4">
+                                        <div className="flex-shrink-0 w-12 h-12 bg-primary-100/50 rounded-full flex items-center justify-center text-primary-700 font-bold border border-primary-200 shadow-sm relative overflow-hidden">
+                                            {(customer.photoUrl && customer.photoUrl !== "NA") ? (
+                                                <img src={customer.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                                            ) : (
+                                                getInitials(customer.name)
+                                            )}
+                                        </div>
+                                        <div className="ml-3 flex-1 min-w-0">
+                                            <div className="text-base font-bold text-slate-900 capitalize truncate">
+                                                {customer.name !== "NA" ? customer.name : 'Unknown Customer'}
+                                            </div>
+                                            <div className="text-xs text-slate-500 mt-0.5 max-w-fit">
+                                                <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[10px] border border-slate-200">ID: {customer.uid?.substring(0, 8)}...</span>
+                                            </div>
+                                        </div>
+                                        <div className="shrink-0 flex items-center bg-emerald-50 max-w-fit px-2 py-1 rounded border border-emerald-100/50">
+                                            <Wallet className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                                            <span className="text-xs font-semibold text-emerald-700">₹{customer.wallet !== "NA" ? Number(customer.wallet).toFixed(0) : '0'}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 bg-slate-50 rounded-lg p-3 border border-slate-100">
+                                        <div className="col-span-2">
+                                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Contact Details</span>
+                                            <div className="space-y-1.5 flex flex-col">
+                                                <div className="flex items-center text-xs text-slate-700 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                                                    <Phone className="w-3 h-3 mr-1.5 text-primary-500 shrink-0" />
+                                                    <span className="truncate">{customer.phone !== "NA" ? customer.phone : 'Unspecified'}</span>
+                                                </div>
+                                                <div className="flex items-center text-xs text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">
+                                                    <Mail className="w-3 h-3 mr-1.5 text-primary-400 shrink-0" />
+                                                    <span className="truncate">{customer.email !== "NA" && customer.email ? customer.email : 'Unspecified'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="col-span-2 pt-2 mt-1 border-t border-slate-200">
+                                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Location</span>
+                                            <div className="flex items-start text-xs text-slate-700">
+                                                <MapPin className="w-3 h-3 mr-1.5 mt-0.5 text-rose-400 shrink-0" />
+                                                <span className="line-clamp-2">{customer.address !== "NA" ? customer.address : 'Unspecified'} {[customer.state !== "NA" ? customer.state : null, customer.pincode !== "NA" ? customer.pincode : null].filter(Boolean).join(' - ')}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="mt-3 flex justify-end">
+                                        <div className="flex items-center text-[10px] text-slate-400 font-medium bg-white px-2 py-1 rounded-md border border-slate-100">
+                                            <Calendar className="w-3 h-3 mr-1" />
+                                            Joined {formatTimestamp(customer.createdAt).split(',')[0]}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             </div>
 

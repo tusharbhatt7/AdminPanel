@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, LogOut, Bell, AlertCircle, ChevronRight } from 'lucide-react';
+import { User, LogOut, Bell, AlertCircle, ChevronRight, Menu } from 'lucide-react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 import { fetchDrivers } from '../services/driverService';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-export default function TopNav({ title }) {
+export default function TopNav({ title, toggleSidebar }) {
     const [currentUser, setCurrentUser] = useState(null);
     const [pendingDrivers, setPendingDrivers] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
@@ -64,12 +64,18 @@ export default function TopNav({ title }) {
     };
 
     return (
-        <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-slate-200 h-[72px] relative z-20">
-            <div>
-                <h2 className="text-2xl font-semibold text-slate-800">{title || 'Dashboard'}</h2>
+        <header className="flex items-center justify-between px-4 sm:px-8 py-4 bg-white border-b border-slate-200 h-[72px] relative z-20">
+            <div className="flex items-center min-w-0 flex-1">
+                <button
+                    onClick={toggleSidebar}
+                    className="p-2 mr-2 sm:mr-4 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg md:hidden transition-colors flex-shrink-0"
+                >
+                    <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
+                <h2 className="text-xl sm:text-2xl font-semibold text-slate-800 truncate pr-2">{title || 'Dashboard'}</h2>
             </div>
 
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-3 sm:space-x-6 flex-shrink-0">
                 <div className="relative" ref={notificationRef}>
                     <button
                         onClick={handleNotificationClick}

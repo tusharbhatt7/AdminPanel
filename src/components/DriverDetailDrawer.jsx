@@ -78,10 +78,19 @@ export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, is
             formData.rcBookStatus === 'verified' &&
             formData.selfieStatus === 'verified';
 
+        const willBeApproved = allDocsVerified ? true : driver.isApproved;
+        let newStatus = formData.status;
+        if (!driver.isApproved && willBeApproved) {
+            newStatus = 'approved';
+        } else if (driver.isApproved && !willBeApproved) {
+            newStatus = 'Blocked';
+        }
+
         onSave({
             ...driver,
             ...formData,
-            isApproved: allDocsVerified ? true : driver.isApproved
+            isApproved: willBeApproved,
+            status: newStatus
         });
     };
 
@@ -138,38 +147,38 @@ export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, is
             <div className={`absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${isVisible ? 'opacity-100' : 'opacity-0'}`} onClick={onClose} />
 
             {/* Drawer Container */}
-            <div className={`relative w-full max-w-2xl bg-slate-50 shadow-2xl flex flex-col h-full transform transition-transform duration-300 ease-out ${isVisible ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className={`relative w-full sm:max-w-xl md:max-w-2xl bg-slate-50 shadow-2xl flex flex-col h-full transform transition-transform duration-300 ease-out ${isVisible ? 'translate-x-0' : 'translate-x-full'}`}>
 
                 {/* Premium Header */}
-                <div className="relative bg-gradient-to-r from-primary-700 via-primary-600 to-indigo-800 px-6 py-8 pb-16 shrink-0 shadow-inner">
+                <div className="relative bg-gradient-to-r from-primary-700 via-primary-600 to-indigo-800 px-4 sm:px-6 py-6 sm:py-8 pb-12 sm:pb-16 shrink-0 shadow-inner">
                     <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full text-white/70 hover:text-white hover:bg-white/20 transition-all duration-200 hover:scale-110 active:scale-95 z-10">
                         <X className="w-5 h-5" />
                     </button>
-                    <div className="flex items-center space-x-5 relative z-10">
-                        <div className="relative group cursor-pointer">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-5 relative z-10 text-center sm:text-left">
+                        <div className="relative group cursor-pointer shrink-0">
                             {formData.selfieUrl ? (
-                                <img src={formData.selfieUrl} alt="Profile" className={`w-20 h-20 rounded-full object-cover border-4 shadow-lg bg-white transition-transform duration-300 group-hover:scale-105 ${driver?.hasSubscription ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-2 ring-offset-primary-700' : 'border-white'}`} />
+                                <img src={formData.selfieUrl} alt="Profile" className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 shadow-lg bg-white transition-transform duration-300 group-hover:scale-105 ${driver?.hasSubscription ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-2 ring-offset-primary-700' : 'border-white'}`} />
                             ) : (
-                                <div className={`w-20 h-20 rounded-full bg-primary-100 border-4 shadow-lg flex items-center justify-center text-primary-700 text-3xl font-bold uppercase transition-transform duration-300 group-hover:scale-105 ${driver?.hasSubscription ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-2 ring-offset-primary-700' : 'border-white'}`}>
+                                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-primary-100 border-4 shadow-lg flex items-center justify-center text-primary-700 text-2xl sm:text-3xl font-bold uppercase transition-transform duration-300 group-hover:scale-105 ${driver?.hasSubscription ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-2 ring-offset-primary-700' : 'border-white'}`}>
                                     {formData.name ? formData.name.charAt(0) : '?'}
                                 </div>
                             )}
-                            <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white shadow-sm z-10 transition-transform duration-300 group-hover:scale-110 ${formData.status === 'Online' ? 'bg-emerald-500' : formData.status === 'Blocked' ? 'bg-rose-500' : 'bg-slate-400'}`}></div>
+                            <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 border-white shadow-sm z-10 transition-transform duration-300 group-hover:scale-110 ${formData.status === 'Online' ? 'bg-emerald-500' : formData.status === 'Blocked' ? 'bg-rose-500' : 'bg-slate-400'}`}></div>
                             {driver?.hasSubscription && (
-                                <div className="absolute -top-2 -right-2 bg-amber-400 text-white rounded-full p-1.5 border-2 border-white shadow-sm z-20 animate-bounce" style={{ animationDuration: '2s' }} title="Active Subscription">
-                                    <Award className="w-3.5 h-3.5" />
+                                <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-amber-400 text-white rounded-full p-1 sm:p-1.5 border-2 border-white shadow-sm z-20 animate-bounce" style={{ animationDuration: '2s' }} title="Active Subscription">
+                                    <Award className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                 </div>
                             )}
                         </div>
                         <div className="text-white">
-                            <h2 className="text-2xl font-bold tracking-tight">{formData.name || 'Unknown Driver'}</h2>
-                            <p className="text-primary-100/90 font-medium text-sm mt-0.5">ID: {driver?.id}</p>
-                            <div className="mt-2 flex items-center space-x-2">
-                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md ${driver?.isApproved ? 'bg-emerald-400/20 text-emerald-50 border border-emerald-400/30' : 'bg-rose-400/20 text-rose-50 border border-rose-400/30'}`}>
+                            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{formData.name || 'Unknown Driver'}</h2>
+                            <p className="text-primary-100/90 font-medium text-xs sm:text-sm mt-0.5">ID: {driver?.id}</p>
+                            <div className="mt-2 flex items-center justify-center sm:justify-start space-x-2">
+                                <span className={`inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md ${driver?.isApproved ? 'bg-emerald-400/20 text-emerald-50 border border-emerald-400/30' : 'bg-rose-400/20 text-rose-50 border border-rose-400/30'}`}>
                                     {driver?.isApproved ? (
-                                        <><ShieldCheck className="w-3 h-3 mr-1" /> Verified Partner</>
+                                        <><ShieldCheck className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" /> Verified Partner</>
                                     ) : (
-                                        <><AlertCircle className="w-3 h-3 mr-1" /> Pending Approval</>
+                                        <><AlertCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" /> Pending Approval</>
                                     )}
                                 </span>
                             </div>
@@ -178,53 +187,53 @@ export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, is
                 </div>
 
                 {/* Main Content Area */}
-                <div className="flex-1 min-h-0 flex flex-col -mt-8 mx-6 bg-white rounded-t-2xl shadow-sm border border-slate-200 overflow-hidden z-10">
+                <div className="flex-1 min-h-0 flex flex-col -mt-4 sm:-mt-8 mx-4 sm:mx-6 bg-white rounded-t-2xl shadow-sm border border-slate-200 overflow-hidden z-10">
 
                     {/* Tabs */}
-                    <div className="flex border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-20 px-2 pt-2">
+                    <div className="flex border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-20 px-1 sm:px-2 pt-1 sm:pt-2">
                         <button
                             type="button"
                             onClick={() => setActiveTab('profile')}
-                            className={`flex-1 py-3 px-4 text-sm font-semibold text-center border-b-2 transition-all duration-300 outline-none ${activeTab === 'profile' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}
+                            className={`flex-1 py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-semibold text-center border-b-2 transition-all duration-300 outline-none ${activeTab === 'profile' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}
                         >
-                            <User className={`w-4 h-4 inline-block mr-2 mb-0.5 transition-colors duration-300 ${activeTab === 'profile' ? 'text-primary-600' : 'text-slate-400'}`} />
+                            <User className={`w-3.5 h-3.5 sm:w-4 sm:h-4 inline-block mr-1.5 sm:mr-2 mb-0.5 transition-colors duration-300 ${activeTab === 'profile' ? 'text-primary-600' : 'text-slate-400'}`} />
                             Profile & Vehicle
                         </button>
                         <button
                             type="button"
                             onClick={() => setActiveTab('documents')}
-                            className={`flex-1 py-3 px-4 text-sm font-semibold text-center border-b-2 transition-all duration-300 outline-none ${activeTab === 'documents' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}
+                            className={`flex-1 py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-semibold text-center border-b-2 transition-all duration-300 outline-none ${activeTab === 'documents' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}
                         >
-                            <FileText className={`w-4 h-4 inline-block mr-2 mb-0.5 transition-colors duration-300 ${activeTab === 'documents' ? 'text-primary-600' : 'text-slate-400'}`} />
+                            <FileText className={`w-3.5 h-3.5 sm:w-4 sm:h-4 inline-block mr-1.5 sm:mr-2 mb-0.5 transition-colors duration-300 ${activeTab === 'documents' ? 'text-primary-600' : 'text-slate-400'}`} />
                             Verification Docs
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-6 py-6 pb-28">
+                    <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 pb-24 sm:pb-28">
                         <form id="driver-edit-form" onSubmit={handleSubmit}>
                             {/* TAB: PROFILE */}
                             {activeTab === 'profile' && (
-                                <div className="space-y-8 transition-all duration-500 ease-in-out origin-top">
+                                <div className="space-y-6 sm:space-y-8 transition-all duration-500 ease-in-out origin-top">
 
                                     {/* Personal Info Section */}
                                     <div className="group/section">
-                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center"><User className="w-4 h-4 mr-2 text-primary-500 transition-transform group-hover/section:scale-110 duration-300" /> Personal Details</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 sm:mb-4 flex items-center"><User className="w-4 h-4 mr-2 text-primary-500 transition-transform group-hover/section:scale-110 duration-300" /> Personal Details</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                                             <div className="col-span-1 md:col-span-2 group/input">
                                                 <label className="block text-xs font-semibold text-slate-500 mb-1.5 transition-colors group-focus-within/input:text-primary-600">Full Name</label>
-                                                <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 shadow-sm outline-none" required />
+                                                <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 shadow-sm outline-none" required />
                                             </div>
                                             <div className="group/input">
                                                 <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center transition-colors group-focus-within/input:text-primary-600"><Phone className="w-3 h-3 mr-1" /> Phone Number</label>
-                                                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 shadow-sm outline-none" />
+                                                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 shadow-sm outline-none" />
                                             </div>
                                             <div className="group/input">
                                                 <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center transition-colors group-focus-within/input:text-primary-600"><Mail className="w-3 h-3 mr-1" /> Email Address</label>
-                                                <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 shadow-sm outline-none" />
+                                                <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 shadow-sm outline-none" />
                                             </div>
                                             <div className="group/input">
                                                 <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center transition-colors group-focus-within/input:text-primary-600"><User className="w-3 h-3 mr-1" /> Gender</label>
-                                                <select name="gender" value={formData.gender} onChange={handleChange} className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 shadow-sm cursor-pointer outline-none">
+                                                <select name="gender" value={formData.gender} onChange={handleChange} className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 shadow-sm cursor-pointer outline-none">
                                                     <option value="">Select...</option>
                                                     <option value="Male">Male</option>
                                                     <option value="Female">Female</option>
@@ -233,7 +242,7 @@ export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, is
                                             </div>
                                             <div className="group/input">
                                                 <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center transition-colors group-focus-within/input:text-primary-600"><Calendar className="w-3 h-3 mr-1" /> Date of Birth</label>
-                                                <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 shadow-sm cursor-pointer outline-none" />
+                                                <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 shadow-sm cursor-pointer outline-none" />
                                             </div>
                                         </div>
                                     </div>

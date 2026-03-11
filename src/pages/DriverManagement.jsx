@@ -97,6 +97,7 @@ export default function DriverManagement() {
             if (newStatus === true) {
                 updatedData = {
                     ...updatedData,
+                    status: 'approved',
                     idFrontStatus: 'verified',
                     idBackStatus: 'verified',
                     licenseFrontStatus: 'verified',
@@ -107,6 +108,7 @@ export default function DriverManagement() {
             } else {
                 updatedData = {
                     ...updatedData,
+                    status: 'Blocked',
                     idFrontStatus: 'rejected',
                     idBackStatus: 'rejected',
                     licenseFrontStatus: 'rejected',
@@ -157,22 +159,23 @@ export default function DriverManagement() {
     });
 
     return (
-        <div className="flex flex-col h-full space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="flex flex-col h-full space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Driver Management</h1>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Driver Management</h1>
+                    <p className="mt-1 text-xs sm:text-sm text-slate-500">
                         View, search, and approve driver registrations across the platform.
                     </p>
                 </div>
-                <button className="px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-primary-600 hover:bg-primary-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-                    Export Data
+                <button className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-primary-600 hover:bg-primary-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                    <span className="hidden sm:inline">Export Data</span>
+                    <span className="sm:hidden">Export</span>
                 </button>
             </div>
 
-            <div className="flex flex-col flex-1 p-6 bg-white border rounded-xl border-slate-200 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="relative w-full max-w-sm">
+            <div className="flex flex-col flex-1 p-4 sm:p-6 bg-white border rounded-xl border-slate-200 shadow-sm">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+                    <div className="relative w-full md:max-w-sm">
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                             <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -186,13 +189,13 @@ export default function DriverManagement() {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
+                    <div className="flex flex-row items-center space-x-2 sm:space-x-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+                        <div className="flex items-center space-x-2 flex-shrink-0">
                             <span className="hidden text-sm font-medium sm:inline text-slate-500">Vehicle:</span>
                             <select
                                 value={filterVehicleType}
                                 onChange={(e) => setFilterVehicleType(e.target.value)}
-                                className="block w-32 py-2 pl-3 pr-10 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-primary-500 focus:border-primary-500 bg-white"
+                                className="block w-28 sm:w-32 py-2 pl-3 pr-8 sm:pr-10 text-xs sm:text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-primary-500 focus:border-primary-500 bg-white"
                             >
                                 <option value="All">All Vehicles</option>
                                 <option value="Mini">Mini</option>
@@ -203,12 +206,12 @@ export default function DriverManagement() {
                                 <option value="Parcel">Parcel</option>
                             </select>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 flex-shrink-0">
                             <span className="hidden text-sm font-medium sm:inline text-slate-500">Status:</span>
                             <select
                                 value={filterStatus}
                                 onChange={(e) => setFilterStatus(e.target.value)}
-                                className="block w-32 py-2 pl-3 pr-10 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-primary-500 focus:border-primary-500 bg-white"
+                                className="block w-28 sm:w-32 py-2 pl-3 pr-8 sm:pr-10 text-xs sm:text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-primary-500 focus:border-primary-500 bg-white"
                             >
                                 <option value="All">All Status</option>
                                 <option value="Approved">Approved</option>
@@ -218,8 +221,10 @@ export default function DriverManagement() {
                     </div>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-x-auto border rounded-lg border-slate-200">
-                    <table className="min-w-full divide-y divide-slate-200">
+                <div className="flex-1 min-h-0 overflow-y-auto sm:overflow-x-auto sm:border sm:rounded-lg sm:border-slate-200">
+
+                    {/* Desktop Table View */}
+                    <table className="min-w-full divide-y divide-slate-200 hidden md:table">
                         <thead className="bg-slate-50 sticky top-0">
                             <tr>
                                 <th scope="col" className="px-6 py-3 text-xs font-semibold tracking-wider text-left text-slate-500 uppercase">
@@ -328,21 +333,120 @@ export default function DriverManagement() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                            <button
-                                                onClick={(e) => handleToggleClick(e, driver)}
-                                                className={`inline-flex items-center px-3 py-1.5 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ${driver.isApproved
-                                                    ? 'border-red-300 text-red-700 bg-white hover:bg-red-50 focus:ring-red-500'
-                                                    : 'border-transparent text-white bg-primary-600 hover:bg-primary-700 focus:ring-primary-500'
-                                                    }`}
-                                            >
-                                                {driver.isApproved ? 'De-approve' : 'Approve'}
-                                            </button>
+                                            {driver.status === 'Blocked' && !driver.isApproved ? (
+                                                <button
+                                                    onClick={(e) => handleToggleClick(e, driver)}
+                                                    className="inline-flex items-center px-3 py-1.5 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 border-transparent text-white bg-slate-600 hover:bg-slate-700 focus:ring-slate-500"
+                                                >
+                                                    Unblock
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={(e) => handleToggleClick(e, driver)}
+                                                    className={`inline-flex items-center px-3 py-1.5 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ${driver.isApproved
+                                                        ? 'border-red-300 text-red-700 bg-white hover:bg-red-50 focus:ring-red-500'
+                                                        : 'border-transparent text-white bg-primary-600 hover:bg-primary-700 focus:ring-primary-500'
+                                                        }`}
+                                                >
+                                                    {driver.isApproved ? 'De-approve' : 'Approve'}
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))
                             )}
                         </tbody>
                     </table>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden flex flex-col space-y-4">
+                        {loading ? (
+                            <div className="py-12 text-center text-sm text-slate-500 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
+                                <div className="flex flex-col items-center justify-center">
+                                    <div className="w-8 h-8 mb-4 border-4 border-primary-200 rounded-full border-t-primary-600 animate-spin"></div>
+                                    <p>Loading driver data...</p>
+                                </div>
+                            </div>
+                        ) : filteredDrivers.length === 0 ? (
+                            <div className="py-12 text-center text-sm text-slate-500 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
+                                No drivers found matching your criteria.
+                            </div>
+                        ) : (
+                            filteredDrivers.map((driver) => (
+                                <div
+                                    key={driver.id}
+                                    onClick={() => handleRowClick(driver)}
+                                    className="bg-white border text-left border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative"
+                                >
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="relative">
+                                                <div className={`w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold text-lg uppercase ${driver.hasSubscription ? 'ring-2 ring-amber-400 ring-offset-2' : ''}`}>
+                                                    {driver.name && typeof driver.name === 'string' ? driver.name.charAt(0) : '?'}
+                                                </div>
+                                                {driver.hasSubscription && (
+                                                    <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-400 border-2 border-white rounded-full"></div>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-slate-900 flex items-center">
+                                                    {driver.name || 'Unknown'}
+                                                    {!driver.isApproved && driver.createdAt && (
+                                                        (() => {
+                                                            const createdAtDate = driver.createdAt?.toDate ? driver.createdAt.toDate() : new Date(driver.createdAt);
+                                                            const hoursDiff = Math.abs(new Date() - createdAtDate) / 36e5;
+                                                            return hoursDiff <= 24;
+                                                        })()
+                                                    ) && (
+                                                            <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 uppercase">New</span>
+                                                        )}
+                                                </div>
+                                                <div className="text-xs text-slate-500 mt-0.5 tracking-tight">ID: {driver.id?.substring(0, 10)}...</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm mb-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                        <div>
+                                            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Contact</div>
+                                            <div className="text-slate-900 font-medium truncate">{driver.phone || 'N/A'}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Vehicle</div>
+                                            <span className="px-2 py-0.5 inline-flex text-xs font-semibold rounded bg-white border border-slate-200 text-slate-700">
+                                                {driver.vehicleType || 'N/A'}
+                                            </span>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Joined</div>
+                                            <div className="text-slate-600 text-xs">
+                                                {(() => {
+                                                    if (!driver.createdAt) return 'N/A';
+                                                    try {
+                                                        const dateVar = driver.createdAt?.toDate ? driver.createdAt.toDate() : new Date(driver.createdAt);
+                                                        return dateVar.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+                                                    } catch (e) { return 'Invalid'; }
+                                                })()}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                                        <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full ${driver.isApproved ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                            {driver.isApproved ? 'Approved' : 'Not Approved'}
+                                        </span>
+                                        {driver.status === 'Blocked' && !driver.isApproved ? (
+                                            <button onClick={(e) => { e.stopPropagation(); handleToggleClick(e, driver); }} className="px-4 py-1.5 bg-slate-600 text-white text-xs font-semibold rounded-lg shadow-sm">
+                                                Unblock
+                                            </button>
+                                        ) : (
+                                            <button onClick={(e) => { e.stopPropagation(); handleToggleClick(e, driver); }} className={`px-4 py-1.5 text-white text-xs font-semibold rounded-lg shadow-sm ${driver.isApproved ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-primary-600'}`}>
+                                                {driver.isApproved ? 'De-approve' : 'Approve'}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
 
                 {/* Pagination Dummy UI */}
@@ -379,10 +483,14 @@ export default function DriverManagement() {
                         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
                         <div className="relative z-10 inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
                             <div className="sm:flex sm:items-start">
-                                <div className={`flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto rounded-full sm:mx-0 sm:h-10 sm:w-10 ${selectedDriver?.isApproved ? 'bg-red-100' : 'bg-primary-100'}`}>
+                                <div className={`flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto rounded-full sm:mx-0 sm:h-10 sm:w-10 ${selectedDriver?.isApproved ? 'bg-red-100' : selectedDriver?.status === 'Blocked' ? 'bg-slate-100' : 'bg-primary-100'}`}>
                                     {selectedDriver?.isApproved ? (
                                         <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                    ) : selectedDriver?.status === 'Blocked' ? (
+                                        <svg className="w-6 h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
                                         </svg>
                                     ) : (
                                         <svg className="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -392,14 +500,16 @@ export default function DriverManagement() {
                                 </div>
                                 <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                                     <h3 className="text-lg font-medium leading-6 text-slate-900" id="modal-title">
-                                        {selectedDriver?.isApproved ? 'De-approve Driver' : 'Approve Driver'}
+                                        {selectedDriver?.isApproved ? 'De-approve Driver' : selectedDriver?.status === 'Blocked' ? 'Unblock & Approve Driver' : 'Approve Driver'}
                                     </h3>
                                     <div className="mt-2">
                                         <p className="text-sm text-slate-500">
-                                            Are you sure you want to {selectedDriver?.isApproved ? 'de-approve' : 'approve'} <strong>{selectedDriver?.name}</strong>?
+                                            Are you sure you want to {selectedDriver?.isApproved ? 'de-approve' : selectedDriver?.status === 'Blocked' ? 'unblock and approve' : 'approve'} <strong>{selectedDriver?.name}</strong>?
                                             {selectedDriver?.isApproved
-                                                ? ' They will no longer be able to accept rides on the platform.'
-                                                : ' They will immediately gain access to the driver application and be able to receive ride requests.'}
+                                                ? ' They will no longer be able to accept rides on the platform and their account will be blocked.'
+                                                : selectedDriver?.status === 'Blocked'
+                                                    ? ' Their account will be unblocked and they will immediately regain access to accept rides.'
+                                                    : ' They will immediately gain access to the driver application and be able to receive ride requests.'}
                                         </p>
                                     </div>
                                 </div>
@@ -414,7 +524,7 @@ export default function DriverManagement() {
                                         }`}
                                     onClick={confirmToggleStatus}
                                 >
-                                    {actionLoading ? 'Processing...' : `Confirm ${selectedDriver?.isApproved ? 'De-approval' : 'Approval'}`}
+                                    {actionLoading ? 'Processing...' : `Confirm ${selectedDriver?.isApproved ? 'De-approval' : selectedDriver?.status === 'Blocked' ? 'Unblock' : 'Approval'}`}
                                 </button>
                                 <button
                                     type="button"
