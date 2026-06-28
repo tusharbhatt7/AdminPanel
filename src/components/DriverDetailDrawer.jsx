@@ -29,6 +29,7 @@ export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, is
                 gender: driver.gender || '',
                 dob: driver.dateOfBirth || driver.dob || '',
                 vehicleType: driver.vehicleType || '',
+                selectedService: driver.selectedService || '',
                 status: driver.status || 'Offline',
                 walletBalance: driver.walletBalance || 0,
                 totalEarnings: driver.totalEarnings || 0,
@@ -64,6 +65,42 @@ export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, is
             ...prev,
             [name]: type === 'number' ? Number(value) : value,
         }));
+    };
+
+    const getServicePrefix = (vt) => {
+        const v = (vt || '').toLowerCase();
+        if (v === '2w' || v === 'bike') return 'bike';
+        if (v === '3w' || v === 'auto') return 'auto';
+        if (v === 'sedan') return 'cabs_sedan';
+        if (v === 'suv') return 'cabs_suv';
+        if (v === 'mini' || v === 'hatchback') return 'cabs_mini';
+        if (v === '4w') return 'cabs_sedan';
+        return '';
+    };
+
+    const getServiceSuffix = (service) => {
+        if (!service) return '';
+        if (service.endsWith('_parcel')) return '_parcel';
+        if (service.endsWith('_po')) return '_po';
+        return '';
+    };
+
+    const handleVehicleTypeChange = (e) => {
+        const newVt = e.target.value;
+        const prefix = getServicePrefix(newVt);
+        const suffix = getServiceSuffix(formData.selectedService);
+        setFormData(prev => ({
+            ...prev,
+            vehicleType: newVt,
+            selectedService: prefix ? prefix + suffix : prev.selectedService,
+        }));
+    };
+
+    const handleServiceModeChange = (e) => {
+        const suffix = e.target.value;
+        const prefix = formData.selectedService.replace(/_parcel$|_po$/, '')
+            || getServicePrefix(formData.vehicleType);
+        setFormData(prev => ({ ...prev, selectedService: prefix + suffix }));
     };
 
     const handleSubmit = (e) => {
@@ -254,16 +291,29 @@ export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, is
                                         <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center"><Activity className="w-4 h-4 mr-2 text-primary-500 transition-transform group-hover/section:scale-110 duration-300" /> Operational Attributes</h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                             <div className="group/input">
-                                                <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center transition-colors group-focus-within/input:text-primary-600"><Car className="w-3 h-3 mr-1" /> Vehicle Category</label>
-                                                <select name="vehicleType" value={formData.vehicleType} onChange={handleChange} className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 shadow-sm cursor-pointer outline-none">
+                                                <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center transition-colors group-focus-within/input:text-primary-600"><Car className="w-3 h-3 mr-1" /> Vehicle Type</label>
+                                                <select name="vehicleType" value={formData.vehicleType} onChange={handleVehicleTypeChange} className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 shadow-sm cursor-pointer outline-none">
                                                     <option value="">Select...</option>
-                                                    <option value="Mini">Mini</option>
-                                                    <option value="Sedan">Sedan</option>
-                                                    <option value="SUV">SUV</option>
-                                                    <option value="Bike">Bike</option>
-                                                    <option value="Auto">Auto</option>
-                                                    <option value="Parcel">Parcel</option>
+                                                    <option value="bike">Bike (2W)</option>
+                                                    <option value="auto">Auto (3W)</option>
+                                                    <option value="sedan">Cab Sedan</option>
+                                                    <option value="suv">Cab SUV</option>
+                                                    <option value="mini">Cab Mini</option>
                                                 </select>
+                                            </div>
+                                            <div className="group/input">
+                                                <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center transition-colors group-focus-within/input:text-primary-600"><CircleDot className="w-3 h-3 mr-1" /> Service Mode</label>
+                                                <select value={getServiceSuffix(formData.selectedService)} onChange={handleServiceModeChange} className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 shadow-sm cursor-pointer outline-none">
+                                                    <option value="">Rides Only</option>
+                                                    <option value="_parcel">Rides + Parcel</option>
+                                                    <option value="_po">Parcel Only</option>
+                                                </select>
+                                            </div>
+                                            <div className="col-span-1 md:col-span-2 group/input">
+                                                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Selected Service (Firestore value)</label>
+                                                <div className="w-full px-4 py-2.5 text-sm font-mono bg-slate-100 border border-slate-200 rounded-xl text-slate-700 select-all">
+                                                    {formData.selectedService || <span className="text-slate-400 italic">not set</span>}
+                                                </div>
                                             </div>
                                             <div className="group/input">
                                                 <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center transition-colors group-focus-within/input:text-primary-600"><CircleDot className="w-3 h-3 mr-1" /> Operational Status</label>
