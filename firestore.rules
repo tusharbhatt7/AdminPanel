@@ -1,23 +1,643 @@
 rules_version = '2';
 
+// Merged: your original working rules + sequential ride dispatch (Cloud Functions).
+// Admin: website users with admin emails OR custom claim admin: true / role: admin.
+// Deploy: firebase deploy --only firestore:rules
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Default rule: deny all access
-    match /{document=**} {
-      allow read, write: if false;
+
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Rules for drivers collection
+    // Admin panel (website) — add more emails here if needed
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email in [
+          'admin@firstcabs.com',
+          'tushar.bhatt7747@gmail.com'
+        ]
+        || request.auth.token.admin == true
+        || request.auth.token.role == 'admin'
+      );
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ── Sequential dispatch helpers (ride_requests) ───────────────────────────
+
+    function isCustomer(ride) {
+      return isAuthenticated() && ride.data.userId == request.auth.uid;
+    }
+
+    function isOfferedDriver(ride) {
+      return isAuthenticated()
+        && ride.data.get('currentOfferedDriverId', null) == request.auth.uid;
+    }
+
+    function isAssignedDriver(ride) {
+      return isAuthenticated()
+        && ride.data.get('assignedDriverId', null) == request.auth.uid;
+    }
+
+    function canReadRide(ride) {
+      return isCustomer(ride) || isOfferedDriver(ride) || isAssignedDriver(ride);
+    }
+
+    function dispatchFieldsUnchanged() {
+      return request.resource.data.get('driverQueue', [])
+               == resource.data.get('driverQueue', [])
+        && request.resource.data.get('currentOfferedDriverId', null)
+               == resource.data.get('currentOfferedDriverId', null)
+        && request.resource.data.get('currentDriverIndex', 0)
+               == resource.data.get('currentDriverIndex', 0)
+        && request.resource.data.get('dispatchStatus', null)
+               == resource.data.get('dispatchStatus', null)
+        && request.resource.data.get('offerExpiresAt', null)
+               == resource.data.get('offerExpiresAt', null)
+        && request.resource.data.get('dispatchStartedAt', null)
+               == resource.data.get('dispatchStartedAt', null);
+    }
+
+    function immutableRideIdentity() {
+      return request.resource.data.userId == resource.data.userId
+        && request.resource.data.pickupLat == resource.data.pickupLat
+        && request.resource.data.pickupLng == resource.data.pickupLng;
+    }
+
+    // The Razorpay fare QR is minted and settled by Cloud Functions only.
+    // Clients must never be able to forge a QR or mark one paid.
+    function qrFieldsUnchanged() {
+      return request.resource.data.get('paymentQr', null)
+               == resource.data.get('paymentQr', null);
+    }
+
+    function validRideCreate() {
+      let data = request.resource.data;
+      return isAuthenticated()
+        && data.userId == request.auth.uid
+        && data.status == 'requested'
+        && data.assignedDriverId == null
+        && data.dispatchStatus == 'searching'
+        && data.currentOfferedDriverId == null
+        && data.driverQueue is list
+        && data.driverQueue.size() == 0
+        && data.currentDriverIndex == 0
+        && data.skippedDrivers is list
+        && data.rejectedByDrivers is list;
+    }
+
+    function customerCanUpdateRide() {
+      return isCustomer(resource)
+        && immutableRideIdentity()
+        && (
+          (
+            // Customer cancel — may also clear live dispatch/offer fields.
+            resource.data.status in ['requested', 'accepted', 'arriving', 'arrived']
+            && request.resource.data.status == 'cancelled'
+            && request.resource.data.cancelledBy == 'user'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status',
+              'cancelledBy',
+              'cancelledAt',
+              'updatedAt',
+              'cancelReason',
+              'currentOfferedDriverId',
+              'offerExpiresAt',
+              'dispatchStatus',
+            ])
+          )
+          || (
+            dispatchFieldsUnchanged()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['otp'])
+            && resource.data.status in ['requested', 'accepted']
+          )
+          || (
+            dispatchFieldsUnchanged()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'customerLat', 'customerLng', 'customerLocationUpdatedAt'
+            ])
+            && resource.data.status in [
+              'requested', 'accepted', 'arriving', 'arrived',
+              'started', 'inProgress', 'collected', 'delivered'
+            ]
+          )
+        );
+    }
+
+    function offeredDriverCanDecline() {
+      return isOfferedDriver(resource)
+        && resource.data.status == 'requested'
+        && resource.data.assignedDriverId == null
+        && request.resource.data.status == 'requested'
+        && request.resource.data.assignedDriverId == null
+        && immutableRideIdentity()
+        // May clear the live offer so the driver app stops showing Accept/Decline.
+        && request.resource.data.currentOfferedDriverId == null
+        && request.resource.data.dispatchStatus in ['searching', 'offered']
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly([
+               'rejectedByDrivers',
+               'skippedDrivers',
+               'lastRejectedAt',
+               'currentOfferedDriverId',
+               'offerExpiresAt',
+               'dispatchStatus',
+               'updatedAt',
+             ]);
+    }
+
+    function offeredDriverCanAccept() {
+      return isOfferedDriver(resource)
+        && resource.data.status == 'requested'
+        && resource.data.assignedDriverId == null
+        && request.resource.data.status == 'accepted'
+        && request.resource.data.assignedDriverId == request.auth.uid
+        && immutableRideIdentity()
+        // Accept may clear offer pointers / mark dispatch accepted.
+        && request.resource.data.currentOfferedDriverId == null
+        && request.resource.data.dispatchStatus in ['accepted', 'offered']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'assignedDriverId',
+          'driverName',
+          'driverPhone',
+          'driverPhotoUrl',
+          'driverRating',
+          'driverTotalTrips',
+          'vehicleNumber',
+          'vehicleType',
+          'vehicleMake',
+          'vehicleModel',
+          'vehicleColor',
+          'vehicleDisplayName',
+          'fuelType',
+          'status',
+          'dispatchStatus',
+          'currentOfferedDriverId',
+          'offerExpiresAt',
+          'acceptedAt',
+          'pickupEtaMinutes',
+          'updatedAt',
+        ]);
+    }
+
+    function assignedDriverCanProgressRide() {
+      return isAssignedDriver(resource)
+        && request.resource.data.assignedDriverId == request.auth.uid
+        && dispatchFieldsUnchanged()
+        && qrFieldsUnchanged()
+        && immutableRideIdentity()
+        && request.resource.data.status in [
+          'accepted', 'arriving', 'arrived', 'started',
+          'inProgress', 'collected', 'delivered', 'completed'
+        ];
+    }
+
+    function assignedDriverCanCancelRide() {
+      return isAssignedDriver(resource)
+        && request.resource.data.assignedDriverId == request.auth.uid
+        && dispatchFieldsUnchanged()
+        && immutableRideIdentity()
+        && resource.data.status in ['accepted', 'arriving', 'arrived']
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'cancelledAt',
+          'cancelledBy',
+          'cancelReason',
+        ]);
+    }
+
+    function driverCanCreateCancelRequest(rideId) {
+      let ride = get(/databases/$(database)/documents/ride_requests/$(rideId));
+      let data = request.resource.data;
+      return isAuthenticated()
+        && data.rideId == rideId
+        && data.driverId == request.auth.uid
+        && data.userId is string
+        && data.userId.size() > 0
+        && ride.data.assignedDriverId == request.auth.uid
+        && ride.data.userId == data.userId
+        && ride.data.status in ['started', 'inProgress', 'collected', 'delivered']
+        && data.status == 'pending'
+        && data.reason is string
+        && data.reason.size() > 0
+        && data.reasonLabel is string
+        && data.reasonLabel.size() > 0
+        && (!('otherMessage' in data) || data.otherMessage is string)
+        && !exists(/databases/$(database)/documents/ride_cancel_requests/$(rideId));
+    }
+
+    function driverCanResubmitCancelRequest() {
+      let data = request.resource.data;
+      return isAuthenticated()
+        && resource.data.driverId == request.auth.uid
+        && resource.data.status == 'rejected'
+        && data.status == 'pending'
+        && data.driverId == request.auth.uid
+        && data.reason is string
+        && data.reason.size() > 0
+        && data.reasonLabel is string
+        && data.reasonLabel.size() > 0
+        && (!('otherMessage' in data) || data.otherMessage is string);
+    }
+
+    function adminCanReviewCancelRequest() {
+      return isAdmin()
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['approved', 'rejected']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'reviewedAt',
+          'reviewedBy',
+          'rejectionNote',
+        ]);
+    }
+
+    function assignedDriverCanRecordCashPayment() {
+      return isAssignedDriver(resource)
+        && resource.data.status == 'completed'
+        && request.resource.data.status == 'completed'
+        && dispatchFieldsUnchanged()
+        && immutableRideIdentity()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'paymentCollected',
+          'paymentStatus',
+          'paymentCollectedAt',
+          'cashCollectedByDriver',
+        ]);
+    }
+
+    function customerCanRecordOnlinePayment() {
+      return isCustomer(resource)
+        && request.resource.data.status == resource.data.status
+        && dispatchFieldsUnchanged()
+        && immutableRideIdentity()
+        && (
+          // Delivery / end-of-ride online payment
+          (
+            resource.data.status == 'completed'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'paymentCollected',
+              'paymentStatus',
+              'paymentCollectedAt',
+              'paymentTime',
+              'paymentId',
+              'paymentOrderId',
+              'paymentSignature',
+              'transactionId',
+              'isPaid',
+              'updatedAt',
+            ])
+          )
+          ||
+          // Pickup OTP online payment (parcel) while ride is still active
+          (
+            resource.data.status in [
+              'accepted', 'arriving', 'arrived',
+              'collected', 'started', 'inProgress', 'delivered', 'completed'
+            ]
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'pickupPaymentStatus',
+              'pickupPaymentId',
+              'pickupPaymentOrderId',
+              'pickupPaymentSignature',
+              'pickupPaymentTime',
+              'pickupPaymentCollected',
+              'pickupPaymentMode',
+              'customerPickupPaid',
+              'updatedAt',
+            ])
+          )
+        );
+    }
+
+    function customerCanSubmitRating() {
+      return isCustomer(resource)
+        && resource.data.status == 'completed'
+        && request.resource.data.status == 'completed'
+        && dispatchFieldsUnchanged()
+        && immutableRideIdentity()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'rating',
+          'ratingTimestamp',
+          'hasRated',
+          'updatedAt',
+        ]);
+    }
+
+    // ── APP CONFIG (READ-ONLY) ────────────────────────────────────────────────
+
+    match /app_config/{document} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ── USERS (CUSTOMERS) — open for authed apps + admin panel ─────────────────
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+
+    match /live_tracking/{rideId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // ── DRIVERS ───────────────────────────────────────────────────────────────
+
     match /drivers/{driverId} {
-      // Allow read/write access for development. 
-      // TODO: Restrict this to authenticated admins later via request.auth != null && request.auth.token.admin == true
-      allow read, write: if true; 
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated() && request.auth.uid == driverId;
+
+      allow update: if isAdmin() || (
+        isAuthenticated() && (
+          request.auth.uid == driverId
+          || request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'walletBalance',
+              'promotionalBalance',
+              'totalEarnings',
+              'totalCommissionPaid',
+              'hasActiveSubscription',
+              'currentSubscription',
+              'subscriptionEndDate',
+              'commissionExempt',
+              'recentTransactions',
+              'updatedAt'
+            ])
+        )
+      );
+
+      allow delete: if isAdmin();
     }
 
-    // Rules for subscriptions collection
-    match /subscriptions/{subId} {
-      allow read, write: if true;
+    // ── MID-RIDE CANCEL REQUESTS (driver → admin approval) ───────────────────
+
+    match /ride_cancel_requests/{rideId} {
+      allow read: if isAdmin()
+        || (isAuthenticated() && resource.data.driverId == request.auth.uid)
+        || (
+          isAuthenticated()
+          && get(/databases/$(database)/documents/ride_requests/$(rideId)).data.assignedDriverId
+               == request.auth.uid
+        );
+
+      allow create: if driverCanCreateCancelRequest(rideId);
+
+      allow update: if adminCanReviewCancelRequest()
+        || driverCanResubmitCancelRequest();
+
+      allow delete: if isAdmin();
+    }
+
+    // ── RIDE QR REQUESTS ─────────────────────────────────────────────────────
+    // The assigned driver asks for a fresh fare QR (usually after the previous
+    // one expired). QR fields on the ride are server-only, so the request goes
+    // through this collection and onRideQrRequestCreated does the work, then
+    // deletes the doc.
+
+    match /ride_qr_requests/{rideId} {
+      allow read: if isAdmin()
+        || (
+          isAuthenticated()
+          && get(/databases/$(database)/documents/ride_requests/$(rideId)).data.assignedDriverId
+               == request.auth.uid
+        );
+
+      allow create: if isAuthenticated()
+        && request.resource.data.requestedBy == request.auth.uid
+        && get(/databases/$(database)/documents/ride_requests/$(rideId)).data.assignedDriverId
+             == request.auth.uid
+        && get(/databases/$(database)/documents/ride_requests/$(rideId)).data.status
+             == 'completed';
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ── ACTIVE DRIVERS (RTDB mirror / legacy Firestore) ───────────────────────
+
+    match /active_drivers/{driverId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+
+    // ── RIDE REQUESTS — admin full access + sequential dispatch for apps ─────
+
+    match /ride_requests/{requestId} {
+      allow read: if isAdmin() || isAuthenticated();
+
+      allow create: if isAdmin() || validRideCreate();
+
+      allow update: if isAdmin()
+        || customerCanUpdateRide()
+        || customerCanRecordOnlinePayment()
+        || customerCanSubmitRating()
+        || offeredDriverCanDecline()
+        || offeredDriverCanAccept()
+        || assignedDriverCanProgressRide()
+        || assignedDriverCanCancelRide()
+        || assignedDriverCanRecordCashPayment();
+
+      allow delete: if isAdmin();
+    }
+
+    // ── ADS ───────────────────────────────────────────────────────────────────
+
+    match /ads/{adId} {
+      allow read: if true;
+      allow write: if isAdmin() || isAuthenticated();
+    }
+
+    match /user_ads/{adId} {
+      allow read: if true;
+      allow write: if isAdmin() || isAuthenticated();
+    }
+
+    // ── RIDES (legacy collection) ─────────────────────────────────────────────
+
+    match /rides/{rideId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+
+    // ── PAYMENTS ──────────────────────────────────────────────────────────────
+
+    match /payments/{paymentId} {
+      // Rider creates a ledger row after Razorpay success; driver/admin can read.
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.rideId is string
+        && request.resource.data.paymentId is string;
+      allow update: if isAuthenticated()
+        && (
+          resource.data.userId == request.auth.uid
+          || isAdmin()
+        );
+      allow delete: if isAdmin();
+    }
+
+    // ── RATINGS ───────────────────────────────────────────────────────────────
+
+    match /ratings/{ratingId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.rideId is string
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── RIDE CHATS ──────────────────────────────────────────────────────────
+
+    match /ride_chats/{rideId}/messages/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.senderId is string
+        && request.resource.data.text is string;
+      allow delete: if isAuthenticated()
+        && resource.data.senderId == request.auth.uid;
+      allow update: if isAdmin();
+    }
+
+    // ── WALLETS ───────────────────────────────────────────────────────────────
+
+    match /wallets/{userId} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+      allow create, update: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+      allow delete: if isAdmin();
+    }
+
+    // ── TRANSACTIONS ──────────────────────────────────────────────────────────
+
+    match /transactions/{transactionId} {
+      allow read: if isAdmin()
+        || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAdmin()
+        || (isAuthenticated() && request.resource.data.userId == request.auth.uid);
+      allow update: if isAdmin()
+        || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // ── WALLET COLLECTION ─────────────────────────────────────────────────────
+
+    match /wallet/{transactionId} {
+      allow read: if isAdmin()
+        || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAdmin()
+        || (isAuthenticated() && request.resource.data.userId == request.auth.uid);
+      allow update: if isAdmin()
+        || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // ── BANK ACCOUNTS ─────────────────────────────────────────────────────────
+
+    match /bank_accounts/{accountId} {
+      allow read: if isAdmin()
+        || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAdmin()
+        || (isAuthenticated() && request.resource.data.userId == request.auth.uid);
+      allow update: if isAdmin()
+        || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow delete: if isAdmin()
+        || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    // ── WITHDRAWAL REQUESTS ───────────────────────────────────────────────────
+
+    match /withdrawal_requests/{requestId} {
+      allow read: if isAdmin()
+        || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAdmin()
+        || (isAuthenticated() && request.resource.data.userId == request.auth.uid);
+      allow update: if isAdmin()
+        || (
+          isAuthenticated()
+          && resource.data.userId == request.auth.uid
+          && request.resource.data.status == 'cancelled'
+        );
+      allow delete: if isAdmin();
+    }
+
+    // ── SUBSCRIPTIONS ─────────────────────────────────────────────────────────
+
+    match /subscriptions/{subscriptionId} {
+      allow read: if isAdmin()
+        || (isAuthenticated() && resource.data.userId == request.auth.uid);
+
+      allow create: if isAdmin()
+        || (
+          isAuthenticated()
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.plan in ['weekly', 'monthly', 'yearly']
+          && request.resource.data.status in ['pending', 'active', 'expired', 'cancelled']
+        );
+
+      allow update: if isAdmin()
+        || (
+          isAuthenticated()
+          && resource.data.userId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'status',
+              'razorpayPaymentId',
+              'razorpayOrderId',
+              'signature',
+              'cancelledAt',
+              'autoRenew',
+              'updatedAt'
+            ])
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // ── SUBSCRIPTION PLANS ────────────────────────────────────────────────────
+
+    match /subscription_plans/{planId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isAuthenticated();
+    }
+
+    // ── USER SUBSCRIPTIONS ────────────────────────────────────────────────────
+
+    match /user_subscriptions/{userId} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+      allow create: if isAdmin()
+        || (
+          isAuthenticated()
+          && request.auth.uid == userId
+          && request.resource.data.userId == userId
+          && request.resource.data.planId is string
+          && request.resource.data.isActive is bool
+        );
+      allow update: if isAdmin()
+        || (
+          isAuthenticated()
+          && request.auth.uid == userId
+          && request.resource.data.userId == userId
+        );
+      allow delete: if isAdmin();
+    }
+
+    // ── Admin website: any other collection ───────────────────────────────────
+
+    match /{document=**} {
+      allow read, write: if isAdmin();
     }
   }
 }
