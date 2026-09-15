@@ -35,21 +35,31 @@ export const RIDE_PRESETS = {
 
 export const isRidePreset = (key) => Object.prototype.hasOwnProperty.call(RIDE_PRESETS, key);
 
-const STATUS_STYLES = {
-    requested: 'bg-amber-50 text-amber-700 ring-amber-200',
-    accepted: 'bg-blue-50 text-blue-700 ring-blue-200',
-    arriving: 'bg-blue-50 text-blue-700 ring-blue-200',
-    arrived: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
-    started: 'bg-primary-50 text-primary-700 ring-primary-200',
-    inProgress: 'bg-primary-50 text-primary-700 ring-primary-200',
-    collected: 'bg-violet-50 text-violet-700 ring-violet-200',
-    delivered: 'bg-violet-50 text-violet-700 ring-violet-200',
-    completed: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    cancelled: 'bg-rose-50 text-rose-700 ring-rose-200',
+// Semantic tone per status, mapped once. Waiting reads as warning, in-flight as
+// informational, parcel handling as its own colour, terminal states as ok/danger.
+const STATUS_TONE = {
+    requested: 'warn',
+    accepted: 'info',
+    arriving: 'info',
+    arrived: 'info',
+    started: 'brand',
+    inProgress: 'brand',
+    collected: 'violet',
+    delivered: 'violet',
+    completed: 'ok',
+    cancelled: 'danger',
 };
 
-export const statusStyle = (status) =>
-    STATUS_STYLES[status] || 'bg-slate-100 text-slate-600 ring-slate-200';
+export const statusTone = (status) => STATUS_TONE[status] || 'neutral';
+
+/** Full class string for a status pill. */
+export const statusStyle = (status) => `pill pill-${statusTone(status)}`;
+
+/** Colour for the 2px row stripe, which scans faster than reading the word. */
+export const statusStripe = (status) => {
+    const tone = statusTone(status);
+    return tone === 'neutral' ? 'var(--c-line-strong)' : `var(--c-${tone})`;
+};
 
 export const statusLabel = (status) =>
     status ? status.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()) : 'Unknown';

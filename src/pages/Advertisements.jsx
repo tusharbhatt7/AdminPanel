@@ -120,16 +120,16 @@ export default function Advertisements() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-50">
+        <div className="flex flex-col h-full bg-raised">
             <div className="p-8">
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Advertisements</h1>
-                        <p className="mt-1 text-slate-500">Manage promotional banners and videos.</p>
+                        <h1 className="text-2xl font-bold text-fg">Advertisements</h1>
+                        <p className="mt-1 text-fg-3">Manage promotional banners and videos.</p>
                     </div>
                     <button
                         onClick={() => setShowUploadModal(true)}
-                        className="flex items-center px-4 py-2 text-white transition-colors rounded-lg bg-primary-600 hover:bg-primary-700"
+                        className="flex items-center px-4 py-2 text-brand-fg transition-colors rounded-lg bg-primary-600 hover:bg-primary-700"
                     >
                         <Plus className="w-5 h-5 mr-2" />
                         Upload New Ad
@@ -141,19 +141,19 @@ export default function Advertisements() {
                         <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
                     </div>
                 ) : ads.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 bg-white border rounded-xl border-slate-200">
-                        <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-slate-50">
-                            <Video className="w-8 h-8 text-slate-400" />
+                    <div className="flex flex-col items-center justify-center h-64 bg-surface border rounded-lg border-line">
+                        <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-raised">
+                            <Video className="w-8 h-8 text-fg-3" />
                         </div>
-                        <p className="text-lg font-medium text-slate-900">No advertisements found</p>
-                        <p className="text-slate-500">Upload your first ad to get started.</p>
+                        <p className="text-lg font-medium text-fg">No advertisements found</p>
+                        <p className="text-fg-3">Upload your first ad to get started.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {ads.map((ad) => (
-                            <div key={ad.id} className="overflow-hidden bg-white border rounded-xl border-slate-200 shadow-sm flex flex-col group">
+                            <div key={ad.id} className="overflow-hidden bg-surface border rounded-lg border-line flex flex-col group">
                                 <div
-                                    className="relative aspect-video bg-slate-100 flex items-center justify-center cursor-pointer group-hover:opacity-90 transition-opacity"
+                                    className="relative aspect-video bg-raised flex items-center justify-center cursor-pointer group-hover:opacity-90 transition-opacity"
                                     onClick={() => setSelectedAd(ad)}
                                 >
                                     {ad.adType === 'video' ? (
@@ -164,13 +164,13 @@ export default function Advertisements() {
                                     <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleDelete(ad); }}
-                                            className="p-1.5 bg-red-500/90 text-white rounded-lg hover:bg-red-600 transition-colors shadow-sm backdrop-blur-sm z-10"
+                                            className="p-1.5 bg-danger text-brand-fg rounded-lg hover:bg-danger transition-colors backdrop-blur-sm z-10"
                                             title="Delete Ad"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                     </div>
-                                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-md text-white text-xs font-medium flex items-center">
+                                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-canvas/80 backdrop-blur-sm rounded-md text-brand-fg text-xs font-medium flex items-center">
                                         {ad.adType === 'video' ? <Video className="w-3 h-3 mr-1" /> : <ImageIcon className="w-3 h-3 mr-1" />}
                                         <span className="capitalize">{ad.adType}</span>
                                     </div>
@@ -178,12 +178,12 @@ export default function Advertisements() {
                                 <div className="p-4 flex-1 flex flex-col justify-between">
                                     <div className="flex justify-between items-start mb-2">
                                         <div>
-                                            <p className="text-sm font-medium text-slate-900 truncate" title={ad.adId}>{ad.adId}</p>
-                                            <p className="text-xs text-slate-500 mt-0.5">Price: ₹{ad.adPrice}</p>
+                                            <p className="text-sm font-medium text-fg truncate" title={ad.adId}>{ad.adId}</p>
+                                            <p className="text-xs text-fg-3 mt-0.5">Price: ₹{ad.adPrice}</p>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-sm font-semibold text-primary-600">{ad.impressions || 0}</p>
-                                            <p className="text-xs text-slate-500">Impressions</p>
+                                            <p className="text-xs text-fg-3">Impressions</p>
                                         </div>
                                     </div>
                                 </div>
@@ -195,34 +195,34 @@ export default function Advertisements() {
 
             {/* Upload Modal */}
             {showUploadModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-                    <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden p-6 animate-in slide-in-from-bottom-4 duration-200">
-                        <h2 className="text-xl font-bold text-slate-900 mb-6">Upload Advertisement</h2>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-canvas/80 backdrop-blur-sm">
+                    <div className="w-full max-w-md bg-surface rounded-lg shadow-xl overflow-hidden p-6 animate-in slide-in-from-bottom-4 duration-200">
+                        <h2 className="text-xl font-bold text-fg mb-6">Upload Advertisement</h2>
 
                         <form onSubmit={handleUpload} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Ad Media (Image/Video)</label>
+                                <label className="block text-sm font-medium text-fg-2 mb-1">Ad Media (Image/Video)</label>
                                 <input
                                     type="file"
                                     accept="image/*,video/*"
                                     onChange={handleFileChange}
-                                    className="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 border border-slate-200 rounded-lg cursor-pointer"
+                                    className="w-full text-sm text-fg-3 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 border border-line rounded-lg cursor-pointer"
                                     disabled={uploading}
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Price per View/Click (₹)</label>
+                                <label className="block text-sm font-medium text-fg-2 mb-1">Price per View/Click (₹)</label>
                                 <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">₹</span>
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-3">₹</span>
                                     <input
                                         type="number"
                                         min="0"
                                         step="0.01"
                                         value={adPrice}
                                         onChange={(e) => setAdPrice(e.target.value)}
-                                        className="w-full pl-8 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-shadow"
+                                        className="w-full pl-8 pr-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-shadow"
                                         placeholder="10"
                                         disabled={uploading}
                                         required
@@ -231,17 +231,17 @@ export default function Advertisements() {
                             </div>
 
                             {uploading && (
-                                <div className="w-full bg-slate-100 rounded-full h-2.5 mt-4 overflow-hidden">
+                                <div className="w-full bg-raised rounded-full h-2.5 mt-4 overflow-hidden">
                                     <div
                                         className="bg-primary-600 h-2.5 rounded-full transition-all duration-300 relative"
                                         style={{ width: `${uploadProgress}%` }}
                                     >
-                                        <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                                        <div className="absolute inset-0 bg-raised animate-pulse"></div>
                                     </div>
                                 </div>
                             )}
 
-                            <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100 mt-6">
+                            <div className="flex justify-end space-x-3 pt-4 border-t border-line/60 mt-6">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -251,7 +251,7 @@ export default function Advertisements() {
                                             setAdPrice('');
                                         }
                                     }}
-                                    className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium text-sm"
+                                    className="px-4 py-2 text-fg-2 hover:bg-raised rounded-lg transition-colors font-medium text-sm"
                                     disabled={uploading}
                                 >
                                     Cancel
@@ -259,7 +259,7 @@ export default function Advertisements() {
                                 <button
                                     type="submit"
                                     disabled={uploading || !file || !adPrice}
-                                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-sm hover:shadow"
+                                    className="px-4 py-2 bg-primary-600 text-brand-fg rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center hover:shadow"
                                 >
                                     {uploading ? (
                                         <>
@@ -276,7 +276,7 @@ export default function Advertisements() {
             {/* View Ad Modal */}
             {selectedAd && (
                 <div
-                    className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-sm"
+                    className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-canvas/90 backdrop-blur-sm"
                     onClick={() => setSelectedAd(null)}
                 >
                     <div
@@ -285,7 +285,7 @@ export default function Advertisements() {
                     >
                         <button
                             onClick={() => setSelectedAd(null)}
-                            className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white transition-colors"
+                            className="absolute -top-12 right-0 p-2 text-brand-fg/70 hover:text-brand-fg transition-colors"
                         >
                             <X className="w-8 h-8" />
                         </button>

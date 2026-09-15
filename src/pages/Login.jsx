@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
 import toast from 'react-hot-toast';
+import { Loader2 } from 'lucide-react';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -21,7 +22,7 @@ export default function Login() {
         try {
             await signInWithEmailAndPassword(auth, email, password);
             toast.success('Login successful');
-            navigate('/drivers');
+            navigate('/dashboard');
         } catch (error) {
             console.error(error);
             toast.error('Invalid credentials or access denied');
@@ -31,52 +32,59 @@ export default function Login() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-slate-50 px-4">
-            <div className="w-full max-w-md p-8 bg-white border outline-none rounded-2xl border-slate-200 shadow-xl text-center">
-
-                <div className="flex items-center justify-center mb-8">
-                    <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
-                        First<span className="text-primary-600">Cabs</span> Admin
-                    </h1>
+        <div className="flex items-center justify-center min-h-screen px-4 bg-canvas">
+            <div className="w-full max-w-sm">
+                <div className="flex items-center gap-2.5 mb-6">
+                    <span className="w-[3px] h-6 rounded-full bg-brand" />
+                    <span className="text-lg font-semibold tracking-tight text-fg">
+                        FirstCabs
+                        <span className="ml-1.5 font-mono text-[10px] font-medium tracking-[0.14em] uppercase text-fg-3">
+                            Admin
+                        </span>
+                    </span>
                 </div>
 
-                <h2 className="text-xl font-semibold text-slate-900 mb-6 text-left">Sign in to your account</h2>
+                <div className="p-6 panel">
+                    <h1 className="text-base font-semibold text-fg">Sign in</h1>
+                    <p className="mt-1 mb-6 text-[13px] text-fg-3">
+                        Authorised operations staff only.
+                    </p>
 
-                <form onSubmit={handleLogin} className="space-y-5 text-left">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
-                        <input
-                            type="email"
-                            className="block w-full px-4 py-3 text-sm border border-slate-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-slate-50 text-slate-900"
-                            placeholder="admin@firstcabs.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                        <input
-                            type="password"
-                            className="block w-full px-4 py-3 text-sm border border-slate-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-slate-50 text-slate-900"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-                    </div>
+                    <form onSubmit={handleLogin} className="flex flex-col gap-4">
+                        <div>
+                            <label htmlFor="login-email" className="field-label">Email address</label>
+                            <input
+                                id="login-email"
+                                type="email"
+                                className="field"
+                                placeholder="admin@firstcabs.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="login-password" className="field-label">Password</label>
+                            <input
+                                id="login-password"
+                                type="password"
+                                className="field"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                        </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="mt-6 w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors disabled:bg-primary-400"
-                    >
-                        {loading ? 'Authenticating...' : 'Sign In'}
-                    </button>
-                </form>
+                        <button type="submit" disabled={loading} className="w-full mt-1 btn btn-primary">
+                            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                            {loading ? 'Authenticating' : 'Sign in'}
+                        </button>
+                    </form>
+                </div>
 
-                <p className="mt-6 text-sm text-slate-500">
-                    Secure admin dashboard access only.
+                <p className="mt-4 font-mono text-[10px] text-center text-fg-3">
+                    firstcabs-5ef3e
                 </p>
             </div>
         </div>

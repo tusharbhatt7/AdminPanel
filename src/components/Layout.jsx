@@ -20,6 +20,8 @@ const getTitleFromPath = (pathname) => {
             return 'Business & Analytics';
         case '/settings':
             return 'Settings';
+        case '/advertisements':
+            return 'Advertisements';
         default:
             return 'Dashboard';
     }
@@ -33,11 +35,10 @@ export default function Layout() {
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
     return (
-        <div className="flex h-screen overflow-hidden bg-slate-50 relative">
-            {/* Mobile Sidebar Overlay Backdrop */}
+        <div className="relative flex h-screen overflow-hidden bg-canvas">
             {isSidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 md:hidden"
+                    className="fixed inset-0 z-30 bg-canvas/80 backdrop-blur-sm md:hidden"
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}
@@ -46,7 +47,7 @@ export default function Layout() {
 
             <div className="flex flex-col flex-1 w-full overflow-hidden">
                 <TopNav title={currentTitle} toggleSidebar={toggleSidebar} />
-                <main className="flex-1 w-full p-4 sm:p-8 overflow-y-auto">
+                <main className="flex-1 w-full p-4 overflow-y-auto sm:p-6">
                     <Outlet />
                 </main>
             </div>

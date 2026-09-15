@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, LogOut, Bell, AlertCircle, ChevronRight, Menu } from 'lucide-react';
+import { User, LogOut, Bell, AlertCircle, ChevronRight, Menu, Sun, Moon } from 'lucide-react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 import { fetchDrivers } from '../services/driverService';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { getTheme, applyTheme } from '../lib/theme';
 
 export default function TopNav({ title, toggleSidebar }) {
     const [currentUser, setCurrentUser] = useState(null);
     const [pendingDrivers, setPendingDrivers] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [theme, setThemeState] = useState(getTheme);
     const notificationRef = useRef(null);
     const navigate = useNavigate();
 
@@ -63,52 +65,71 @@ export default function TopNav({ title, toggleSidebar }) {
         navigate('/drivers');
     };
 
+    const toggleTheme = () => {
+        const next = theme === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        setThemeState(next);
+    };
+
     return (
-        <header className="flex items-center justify-between px-4 sm:px-8 py-4 bg-white border-b border-slate-200 h-[72px] relative z-20">
-            <div className="flex items-center min-w-0 flex-1">
+        <header className="relative z-20 flex items-center justify-between h-14 gap-3 px-3 border-b sm:px-5 bg-surface border-line shrink-0">
+            <div className="flex items-center flex-1 min-w-0 gap-2">
                 <button
                     onClick={toggleSidebar}
-                    className="p-2 mr-2 sm:mr-4 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg md:hidden transition-colors flex-shrink-0"
+                    aria-label="Open navigation"
+                    className="p-2 transition-colors rounded-md text-fg-3 hover:text-fg hover:bg-raised md:hidden shrink-0"
                 >
-                    <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <Menu className="w-4 h-4" />
                 </button>
-                <h2 className="text-xl sm:text-2xl font-semibold text-slate-800 truncate pr-2">{title || 'Dashboard'}</h2>
+                <h1 className="text-[15px] font-semibold tracking-tight truncate text-fg">
+                    {title || 'Dashboard'}
+                </h1>
             </div>
 
-            <div className="flex items-center space-x-3 sm:space-x-6 flex-shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
+                {/* Theme */}
+                <button
+                    onClick={toggleTheme}
+                    title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+                    aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                    className="p-2 transition-colors rounded-md text-fg-3 hover:text-fg hover:bg-raised"
+                >
+                    {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
+
+                {/* Notifications */}
                 <div className="relative" ref={notificationRef}>
                     <button
                         onClick={handleNotificationClick}
-                        className="relative p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-all duration-200"
+                        aria-label={`${pendingDrivers.length} drivers pending approval`}
+                        className="relative p-2 transition-colors rounded-md text-fg-3 hover:text-fg hover:bg-raised"
                     >
-                        <Bell className="w-5 h-5" />
+                        <Bell className="w-4 h-4" />
                         {pendingDrivers.length > 0 && (
-                            <span className="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 text-[10px] font-bold text-white bg-red-500 rounded-full ring-2 ring-white">
+                            <span className="absolute top-1 right-1 flex items-center justify-center min-w-[15px] h-[15px] px-1
+                                             font-mono text-[9px] font-bold rounded-full bg-warn text-canvas">
                                 {pendingDrivers.length}
                             </span>
                         )}
                     </button>
 
-                    {/* Notification Dropdown */}
                     {showNotifications && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden transform origin-top-right transition-all animate-in fade-in slide-in-from-top-2">
-                            <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                                <h3 className="text-sm font-semibold text-slate-800">Notifications</h3>
+                        <div className="absolute right-0 mt-2 overflow-hidden origin-top-right border rounded-lg w-80 bg-surface border-line shadow-2xl">
+                            <div className="flex items-center justify-between px-3 py-2.5 border-b bg-raised border-line">
+                                <h3 className="eyebrow">Pending approval</h3>
                                 {pendingDrivers.length > 0 && (
-                                    <span className="bg-primary-100 text-primary-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                                        {pendingDrivers.length} New
-                                    </span>
+                                    <span className="pill pill-warn">{pendingDrivers.length} new</span>
                                 )}
                             </div>
 
-                            <div className="max-h-80 overflow-y-auto">
+                            <div className="overflow-y-auto max-h-80">
                                 {pendingDrivers.length === 0 ? (
-                                    <div className="p-6 text-center text-slate-500 flex flex-col items-center">
-                                        <Bell className="w-8 h-8 text-slate-300 mb-2 opacity-50" />
-                                        <p className="text-sm">No new notifications</p>
+                                    <div className="flex flex-col items-center p-6 text-center">
+                                        <Bell className="w-6 h-6 mb-2 text-fg-3 opacity-40" />
+                                        <p className="text-[13px] text-fg-3">Nothing waiting on you</p>
                                     </div>
                                 ) : (
-                                    <div className="divide-y divide-slate-100">
+                                    <div>
                                         {pendingDrivers.map((driver) => (
                                             <div
                                                 key={driver.id}
@@ -117,16 +138,16 @@ export default function TopNav({ title, toggleSidebar }) {
                                                     setShowNotifications(false);
                                                     navigate('/drivers', { state: { selectedDriverId: driver.id } });
                                                 }}
-                                                className="p-4 hover:bg-slate-50 cursor-pointer transition-colors flex items-start space-x-3 group"
+                                                className="flex items-start gap-2.5 px-3 py-2.5 border-b cursor-pointer border-line/60 last:border-b-0 hover:bg-raised transition-colors group"
                                             >
-                                                <div className="mt-0.5 bg-amber-100 p-1.5 rounded-full text-amber-600 shrink-0">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                </div>
+                                                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-warn" />
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-slate-800 truncate">New Driver Registration</p>
-                                                    <p className="text-xs text-slate-500 mt-1 truncate">{driver.name || driver.email || 'Unknown User'} is pending approval.</p>
+                                                    <p className="text-[13px] font-medium truncate text-fg">
+                                                        {driver.name || driver.email || 'Unknown driver'}
+                                                    </p>
+                                                    <p className="text-xs truncate text-fg-3">Awaiting document review</p>
                                                 </div>
-                                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary-500 transition-colors self-center" />
+                                                <ChevronRight className="self-center w-4 h-4 transition-colors text-fg-3 group-hover:text-brand" />
                                             </div>
                                         ))}
                                     </div>
@@ -134,12 +155,9 @@ export default function TopNav({ title, toggleSidebar }) {
                             </div>
 
                             {pendingDrivers.length > 0 && (
-                                <div className="p-3 border-t border-slate-100 bg-slate-50">
-                                    <button
-                                        onClick={viewDrivers}
-                                        className="w-full py-2 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
-                                    >
-                                        View All in Driver Management
+                                <div className="p-2 border-t bg-raised border-line">
+                                    <button onClick={viewDrivers} className="w-full btn btn-ghost btn-sm">
+                                        Open Driver Management
                                     </button>
                                 </div>
                             )}
@@ -147,33 +165,35 @@ export default function TopNav({ title, toggleSidebar }) {
                     )}
                 </div>
 
-                <div className="hidden sm:block h-8 w-px bg-slate-200"></div>
+                <div className="hidden w-px h-6 mx-1 sm:block bg-line" />
 
-                <div className="flex items-center space-x-3">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-primary-100 to-indigo-100 text-primary-700 border border-primary-200 shadow-sm shadow-primary-500/10">
+                {/* Account */}
+                <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center w-8 h-8 overflow-hidden text-xs font-semibold border rounded-md bg-brand-soft text-brand border-line shrink-0">
                         {currentUser?.photoURL ? (
-                            <img src={currentUser.photoURL} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                            <img src={currentUser.photoURL} alt="" className="object-cover w-full h-full" />
+                        ) : currentUser?.email ? (
+                            currentUser.email.charAt(0).toUpperCase()
                         ) : (
-                            <span className="font-bold text-lg">
-                                {currentUser?.email ? currentUser.email.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
-                            </span>
+                            <User className="w-4 h-4" />
                         )}
                     </div>
-                    <div className="hidden md:block">
-                        <p className="text-sm font-bold text-slate-800 tracking-tight">
-                            {currentUser ? (currentUser.displayName || currentUser.email.split('@')[0]) : 'Admin User'}
+                    <div className="hidden lg:block">
+                        <p className="text-[13px] font-medium leading-tight text-fg">
+                            {currentUser ? (currentUser.displayName || currentUser.email.split('@')[0]) : 'Admin'}
                         </p>
-                        <p className="text-xs font-medium text-slate-500 truncate max-w-[150px]">
+                        <p className="font-mono text-[10px] leading-tight truncate text-fg-3 max-w-[160px]">
                             {currentUser?.email || 'Super Admin'}
                         </p>
                     </div>
 
                     <button
                         onClick={handleLogout}
-                        className="p-2 ml-4 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors active:scale-95"
-                        title="Logout"
+                        title="Log out"
+                        aria-label="Log out"
+                        className="p-2 transition-colors rounded-md text-fg-3 hover:text-danger hover:bg-danger-soft"
                     >
-                        <LogOut className="w-5 h-5" />
+                        <LogOut className="w-4 h-4" />
                     </button>
                 </div>
             </div>

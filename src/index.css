@@ -1,20 +1,279 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Inter", "Roboto", "Helvetica Neue", sans-serif;
-  --color-primary-50: #f0fdfa;
-  --color-primary-100: #ccfbf1;
-  --color-primary-200: #99f6e4;
-  --color-primary-300: #5eead4;
-  --color-primary-500: #14b8a6;
-  --color-primary-600: #0d9488;
-  --color-primary-700: #0f766e;
+/* Class-driven theming: the pre-paint script in index.html stamps .dark or .light
+   on <html>, so the toggle wins over the OS in both directions. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  /* ── Dark is the default: this panel is watched all day by dispatch staff ── */
+  :root,
+  .dark {
+    --c-canvas: #0a0e14;
+    --c-surface: #10161e;
+    --c-raised: #172029;
+    --c-line: #1f2a36;
+    --c-line-strong: #2d3c4c;
+
+    --c-fg: #e4ecf4;
+    --c-fg-2: #9cafc1;
+    --c-fg-3: #64778a;
+
+    --c-brand: #2dd4bf;
+    --c-brand-strong: #14b8a6;
+    --c-brand-fg: #04211e;
+    --c-brand-soft: #0e2f2c;
+
+    --c-ok: #34d399;
+    --c-ok-soft: #0c2c23;
+    --c-warn: #fbbf24;
+    --c-warn-soft: #2f2412;
+    --c-danger: #fb7185;
+    --c-danger-soft: #311620;
+    --c-info: #60a5fa;
+    --c-info-soft: #12233d;
+    --c-violet: #a78bfa;
+    --c-violet-soft: #221b3a;
+
+    --c-shadow: 0 0 0 1px rgb(0 0 0 / 0.35), 0 8px 24px -12px rgb(0 0 0 / 0.7);
+    color-scheme: dark;
+  }
+
+  .light {
+    --c-canvas: #f3f6f9;
+    --c-surface: #ffffff;
+    --c-raised: #eef2f6;
+    --c-line: #dee5ed;
+    --c-line-strong: #c3d0de;
+
+    --c-fg: #0e1720;
+    --c-fg-2: #4c5d70;
+    --c-fg-3: #7b8b9d;
+
+    --c-brand: #0d9488;
+    --c-brand-strong: #0f766e;
+    --c-brand-fg: #ffffff;
+    --c-brand-soft: #dff4f1;
+
+    --c-ok: #047857;
+    --c-ok-soft: #d6f5e6;
+    --c-warn: #a15c07;
+    --c-warn-soft: #fdf0d5;
+    --c-danger: #cf2b3f;
+    --c-danger-soft: #fde3e6;
+    --c-info: #1d4ed8;
+    --c-info-soft: #dce8fd;
+    --c-violet: #6d28d9;
+    --c-violet-soft: #eae4fd;
+
+    --c-shadow: 0 1px 2px rgb(16 28 40 / 0.06), 0 8px 24px -14px rgb(16 28 40 / 0.28);
+    color-scheme: light;
+  }
+
+  /* `inline` makes each utility emit var(--c-*) rather than a baked value,
+     which is what lets one class follow both themes. */
+  @theme inline {
+    --color-canvas: var(--c-canvas);
+    --color-surface: var(--c-surface);
+    --color-raised: var(--c-raised);
+    --color-line: var(--c-line);
+    --color-line-strong: var(--c-line-strong);
+
+    --color-fg: var(--c-fg);
+    --color-fg-2: var(--c-fg-2);
+    --color-fg-3: var(--c-fg-3);
+
+    --color-brand: var(--c-brand);
+    --color-brand-strong: var(--c-brand-strong);
+    --color-brand-fg: var(--c-brand-fg);
+    --color-brand-soft: var(--c-brand-soft);
+
+    --color-ok: var(--c-ok);
+    --color-ok-soft: var(--c-ok-soft);
+    --color-warn: var(--c-warn);
+    --color-warn-soft: var(--c-warn-soft);
+    --color-danger: var(--c-danger);
+    --color-danger-soft: var(--c-danger-soft);
+    --color-info: var(--c-info);
+    --color-info-soft: var(--c-info-soft);
+    --color-violet: var(--c-violet);
+    --color-violet-soft: var(--c-violet-soft);
+
+    /* Kept so any class still naming the old scale resolves to the new accent. */
+    --color-primary-50: var(--c-brand-soft);
+    --color-primary-100: var(--c-brand-soft);
+    --color-primary-200: var(--c-line-strong);
+    --color-primary-300: var(--c-brand);
+    --color-primary-500: var(--c-brand);
+    --color-primary-600: var(--c-brand);
+    --color-primary-700: var(--c-brand-strong);
+
+    --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-width: 0;
+    display: block;
+    background-color: var(--c-canvas);
+    color: var(--c-fg);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Digits that sit in columns must not jitter as values update. */
+  .tabular,
+  th,
+  td {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background: var(--c-brand);
+    color: var(--c-brand-fg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--c-brand);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--c-line-strong);
+    border-radius: 99px;
+    border: 3px solid var(--c-canvas);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--c-fg-3);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
-body {
-  margin: 0;
-  display: flex;
-  min-height: 100vh;
-  min-width: 100vw;
-  background-color: #f8fafc; /* slate-50 */
+@layer components {
+  /* ── Surfaces ───────────────────────────────────────────────────────── */
+  .panel {
+    @apply bg-surface border border-line rounded-lg;
+  }
+
+  .panel-flush {
+    @apply bg-surface border border-line rounded-lg overflow-hidden;
+  }
+
+  /* ── Eyebrow / section labels ───────────────────────────────────────── */
+  .eyebrow {
+    @apply font-mono text-[10px] font-semibold tracking-[0.14em] uppercase text-fg-3;
+  }
+
+  /* ── Buttons ────────────────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 text-[13px] font-medium
+           rounded-md border transition-colors duration-150 whitespace-nowrap
+           disabled:opacity-45 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply bg-brand text-brand-fg border-brand hover:bg-brand-strong hover:border-brand-strong;
+  }
+  .btn-default {
+    @apply bg-raised text-fg-2 border-line hover:text-fg hover:border-line-strong;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-fg-3 border-transparent hover:text-fg hover:bg-raised;
+  }
+  .btn-danger {
+    @apply bg-transparent text-danger border-line hover:bg-danger-soft hover:border-danger;
+  }
+  .btn-sm {
+    @apply px-2.5 py-1.5 text-xs;
+  }
+
+  /* ── Form controls ──────────────────────────────────────────────────── */
+  .field {
+    @apply w-full px-3 py-2 text-[13px] rounded-md bg-raised text-fg
+           border border-line placeholder:text-fg-3
+           focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25
+           transition-colors duration-150;
+  }
+  .field-label {
+    @apply block mb-1.5 font-mono text-[10px] font-semibold tracking-[0.12em] uppercase text-fg-3;
+  }
+
+  /* ── Status pills ───────────────────────────────────────────────────── */
+  .pill {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 font-mono text-[10px] font-semibold
+           tracking-[0.07em] uppercase rounded whitespace-nowrap;
+  }
+  .pill-ok      { @apply bg-ok-soft text-ok; }
+  .pill-warn    { @apply bg-warn-soft text-warn; }
+  .pill-danger  { @apply bg-danger-soft text-danger; }
+  .pill-info    { @apply bg-info-soft text-info; }
+  .pill-violet  { @apply bg-violet-soft text-violet; }
+  .pill-brand   { @apply bg-brand-soft text-brand; }
+  .pill-neutral { @apply bg-raised text-fg-3; }
+
+  /* ── Dense data tables ──────────────────────────────────────────────── */
+  .tbl {
+    @apply w-full text-[13px] border-collapse;
+  }
+  .tbl thead th {
+    @apply text-left px-4 py-2.5 font-mono text-[10px] font-semibold tracking-[0.1em]
+           uppercase text-fg-3 bg-raised border-b border-line whitespace-nowrap;
+  }
+  .tbl tbody td {
+    @apply px-4 py-2.5 border-b border-line/60 align-middle;
+  }
+  .tbl tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .tbl tbody tr.row-link {
+    @apply cursor-pointer transition-colors duration-100 hover:bg-raised;
+  }
+
+  /* A 2px status stripe reads faster than a coloured word at a glance. */
+  .stripe {
+    @apply relative;
+  }
+  .stripe::before {
+    content: "";
+    @apply absolute left-0 top-0 bottom-0 w-[2px];
+    background: var(--stripe-color, transparent);
+  }
+
+  /* Table rows cannot use the pseudo-element above: a non-cell child of a <tr>
+     gets wrapped in an anonymous table cell, which adds a phantom column and
+     knocks every header out of alignment. An inset shadow on the first cell
+     draws the same stripe without touching the column model. */
+  .stripe-cell {
+    box-shadow: inset 2px 0 0 var(--stripe-color, transparent);
+  }
+
+  .mono {
+    @apply font-mono text-[12px];
+  }
+
+  .skeleton {
+    @apply bg-raised rounded animate-pulse;
+  }
 }

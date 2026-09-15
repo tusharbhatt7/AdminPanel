@@ -116,60 +116,60 @@ export default function CustomerManagement() {
             )}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Customer Management</h1>
-                    <p className="mt-1 text-xs sm:text-sm text-slate-500">
+                    <h1 className="text-xl sm:text-2xl font-bold text-fg">Customer Management</h1>
+                    <p className="mt-1 text-xs sm:text-sm text-fg-3">
                         View and search through registered customer profiles.
                     </p>
                 </div>
-                <button className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-primary-600 hover:bg-primary-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                <button className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-brand-fg transition-colors rounded-lg bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
                     Export Data
                 </button>
             </div>
 
-            <div className="flex flex-col flex-1 p-4 sm:p-6 bg-white border rounded-xl border-slate-200 shadow-sm">
+            <div className="flex flex-col flex-1 p-4 sm:p-6 bg-surface border rounded-lg border-line ">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 sm:gap-0 mb-4 sm:mb-6">
                     <div className="relative w-full sm:max-w-sm">
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            <Search className="w-5 h-5 text-slate-400" />
+                            <Search className="w-5 h-5 text-fg-3" />
                         </div>
                         <input
                             type="text"
-                            className="block w-full pl-10 pr-3 py-2 text-sm border border-slate-300 rounded-lg bg-slate-50 focus:ring-primary-500 focus:border-primary-500 text-slate-900 placeholder-slate-400"
+                            className="block w-full pl-10 pr-3 py-2 text-sm border border-line rounded-lg bg-raised focus:ring-primary-500 focus:border-primary-500 text-fg placeholder:text-fg-3"
                             placeholder="Search by name, phone, or email..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <div className="text-sm text-slate-500 text-right sm:text-left">
-                        Total Customers: <span className="font-semibold text-slate-900">{filteredCustomers.length}</span>
+                    <div className="text-sm text-fg-3 text-right sm:text-left">
+                        Total Customers: <span className="font-semibold text-fg">{filteredCustomers.length}</span>
                     </div>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto sm:border rounded-xl border-slate-200">
-                    <table className="hidden md:table min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50 sticky top-0 z-10">
+                <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto sm:border rounded-lg border-line">
+                    <table className="hidden md:table min-w-full divide-y divide-line">
+                        <thead className="bg-raised sticky top-0 z-10">
                             <tr>
-                                <th scope="col" className="px-6 py-4 text-xs font-semibold tracking-wider text-left text-slate-500 uppercase">
+                                <th scope="col" className="px-6 py-4 text-xs font-semibold tracking-wider text-left text-fg-3 uppercase">
                                     Customer Info
                                 </th>
-                                <th scope="col" className="px-6 py-4 text-xs font-semibold tracking-wider text-left text-slate-500 uppercase">
+                                <th scope="col" className="px-6 py-4 text-xs font-semibold tracking-wider text-left text-fg-3 uppercase">
                                     Contact Details
                                 </th>
-                                <th scope="col" className="px-6 py-4 text-xs font-semibold tracking-wider text-left text-slate-500 uppercase">
+                                <th scope="col" className="px-6 py-4 text-xs font-semibold tracking-wider text-left text-fg-3 uppercase">
                                     Wallet Balance
                                 </th>
-                                <th scope="col" className="px-6 py-4 text-xs font-semibold tracking-wider text-left text-slate-500 uppercase">
+                                <th scope="col" className="px-6 py-4 text-xs font-semibold tracking-wider text-left text-fg-3 uppercase">
                                     Location
                                 </th>
-                                <th scope="col" className="px-6 py-4 text-xs font-semibold tracking-wider text-left text-slate-500 uppercase">
+                                <th scope="col" className="px-6 py-4 text-xs font-semibold tracking-wider text-left text-fg-3 uppercase">
                                     Joined Date
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-slate-200">
+                        <tbody className="bg-surface divide-y divide-line">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-16 text-center text-sm text-slate-500">
+                                    <td colSpan="5" className="px-6 py-16 text-center text-sm text-fg-3">
                                         <div className="flex flex-col items-center justify-center">
                                             <div className="w-8 h-8 mb-4 border-4 border-primary-200 rounded-full border-t-primary-600 animate-spin"></div>
                                             <p className="font-medium">Loading customers...</p>
@@ -178,11 +178,11 @@ export default function CustomerManagement() {
                                 </tr>
                             ) : filteredCustomers.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-16 text-center text-sm text-slate-500">
-                                        <div className="flex flex-col items-center justify-center bg-slate-50 mx-auto w-16 h-16 rounded-full mb-3">
-                                            <Search className="w-6 h-6 text-slate-400" />
+                                    <td colSpan="5" className="px-6 py-16 text-center text-sm text-fg-3">
+                                        <div className="flex flex-col items-center justify-center bg-raised mx-auto w-16 h-16 rounded-full mb-3">
+                                            <Search className="w-6 h-6 text-fg-3" />
                                         </div>
-                                        <p className="font-medium text-slate-900">No customers found</p>
+                                        <p className="font-medium text-fg">No customers found</p>
                                         <p className="mt-1">Try adjusting your search query.</p>
                                     </td>
                                 </tr>
@@ -191,11 +191,11 @@ export default function CustomerManagement() {
                                     <tr
                                         key={customer.id}
                                         onClick={() => handleRowClick(customer)}
-                                        className="hover:bg-slate-50 transition-colors cursor-pointer"
+                                        className="hover:bg-raised transition-colors cursor-pointer"
                                     >
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
-                                                <div className="flex-shrink-0 w-10 h-10 bg-primary-100/50 rounded-full flex items-center justify-center text-primary-700 font-bold border border-primary-200 shadow-sm relative overflow-hidden">
+                                                <div className="flex-shrink-0 w-10 h-10 bg-primary-100/50 rounded-full flex items-center justify-center text-primary-700 font-bold border border-primary-200 relative overflow-hidden">
                                                     {(customer.photoUrl && customer.photoUrl !== "NA") ? (
                                                         <img src={customer.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
                                                     ) : (
@@ -203,50 +203,50 @@ export default function CustomerManagement() {
                                                     )}
                                                 </div>
                                                 <div className="ml-4">
-                                                    <div className="text-sm font-semibold text-slate-900 capitalize">
+                                                    <div className="text-sm font-semibold text-fg capitalize">
                                                         {customer.name !== "NA" ? customer.name : 'Unknown'}
                                                     </div>
-                                                    <div className="text-xs text-slate-500 flex items-center mt-0.5" title="UID">
-                                                        <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">{customer.uid?.substring(0, 8)}...</span>
+                                                    <div className="text-xs text-fg-3 flex items-center mt-0.5" title="UID">
+                                                        <span className="font-mono bg-raised px-1.5 py-0.5 rounded text-[10px]">{customer.uid?.substring(0, 8)}...</span>
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex flex-col space-y-1">
-                                                <div className="flex items-center text-sm text-slate-700">
-                                                    <Phone className="w-3.5 h-3.5 mr-2 text-slate-400 flex-shrink-0" />
+                                                <div className="flex items-center text-sm text-fg-2">
+                                                    <Phone className="w-3.5 h-3.5 mr-2 text-fg-3 flex-shrink-0" />
                                                     {customer.phone !== "NA" ? customer.phone : 'No Phone'}
                                                 </div>
-                                                <div className="flex items-center text-sm text-slate-500">
-                                                    <Mail className="w-3.5 h-3.5 mr-2 text-slate-400 flex-shrink-0" />
+                                                <div className="flex items-center text-sm text-fg-3">
+                                                    <Mail className="w-3.5 h-3.5 mr-2 text-fg-3 flex-shrink-0" />
                                                     {customer.email !== "NA" && customer.email ? customer.email : 'No Email'}
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60 shadow-sm">
+                                            <div className="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-ok-soft text-ok border border-ok/30 ">
                                                 <Wallet className="w-3.5 h-3.5 mr-1.5 opacity-70" />
                                                 ₹{customer.wallet !== "NA" ? Number(customer.wallet).toFixed(2) : '0.00'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex flex-col">
-                                                <div className="flex items-start text-sm text-slate-700 max-w-[200px] truncate">
-                                                    <MapPin className="w-3.5 h-3.5 mr-1.5 mt-0.5 text-slate-400 flex-shrink-0" />
+                                                <div className="flex items-start text-sm text-fg-2 max-w-[200px] truncate">
+                                                    <MapPin className="w-3.5 h-3.5 mr-1.5 mt-0.5 text-fg-3 flex-shrink-0" />
                                                     <span className="truncate" title={customer.address !== "NA" ? customer.address : 'Location Unspecified'}>
                                                         {customer.address !== "NA" ? customer.address : 'Unspecified'}
                                                     </span>
                                                 </div>
                                                 {(customer.state !== "NA" || customer.pincode !== "NA") && (
-                                                    <div className="text-xs text-slate-500 ml-5 mt-0.5">
+                                                    <div className="text-xs text-fg-3 ml-5 mt-0.5">
                                                         {[customer.state !== "NA" ? customer.state : null, customer.pincode !== "NA" ? customer.pincode : null].filter(Boolean).join(' - ')}
                                                     </div>
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 flex items-center h-full pt-6">
-                                            <Calendar className="w-4 h-4 mr-2 text-slate-400" />
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-fg-2 flex items-center h-full pt-6">
+                                            <Calendar className="w-4 h-4 mr-2 text-fg-3" />
                                             {formatTimestamp(customer.createdAt)}
                                         </td>
                                     </tr>
@@ -258,18 +258,18 @@ export default function CustomerManagement() {
                     {/* Mobile Card Layout */}
                     <div className="md:hidden grid grid-cols-1 gap-4 pb-20">
                         {loading ? (
-                            <div className="py-16 text-center text-sm text-slate-500 border rounded-xl bg-slate-50 border-slate-100">
+                            <div className="py-16 text-center text-sm text-fg-3 border rounded-lg bg-raised border-line/60">
                                 <div className="flex flex-col items-center justify-center">
                                     <div className="w-8 h-8 mb-4 border-4 border-primary-200 rounded-full border-t-primary-600 animate-spin"></div>
                                     <p className="font-medium">Loading customers...</p>
                                 </div>
                             </div>
                         ) : filteredCustomers.length === 0 ? (
-                            <div className="py-16 text-center text-sm text-slate-500 border rounded-xl bg-slate-50 border-slate-100">
-                                <div className="flex flex-col items-center justify-center bg-white mx-auto w-16 h-16 rounded-full mb-3 shadow-sm border border-slate-100">
-                                    <Search className="w-6 h-6 text-slate-400" />
+                            <div className="py-16 text-center text-sm text-fg-3 border rounded-lg bg-raised border-line/60">
+                                <div className="flex flex-col items-center justify-center bg-surface mx-auto w-16 h-16 rounded-full mb-3 border border-line/60">
+                                    <Search className="w-6 h-6 text-fg-3" />
                                 </div>
-                                <p className="font-medium text-slate-900">No customers found</p>
+                                <p className="font-medium text-fg">No customers found</p>
                                 <p className="mt-1">Try adjusting your search query.</p>
                             </div>
                         ) : (
@@ -277,10 +277,10 @@ export default function CustomerManagement() {
                                 <div
                                     key={customer.id}
                                     onClick={() => handleRowClick(customer)}
-                                    className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                                    className="bg-surface border border-line rounded-lg p-4 transition-all active:scale-[0.98] cursor-pointer"
                                 >
                                     <div className="flex items-center mb-4">
-                                        <div className="flex-shrink-0 w-12 h-12 bg-primary-100/50 rounded-full flex items-center justify-center text-primary-700 font-bold border border-primary-200 shadow-sm relative overflow-hidden">
+                                        <div className="flex-shrink-0 w-12 h-12 bg-primary-100/50 rounded-full flex items-center justify-center text-primary-700 font-bold border border-primary-200 relative overflow-hidden">
                                             {(customer.photoUrl && customer.photoUrl !== "NA") ? (
                                                 <img src={customer.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
                                             ) : (
@@ -288,44 +288,44 @@ export default function CustomerManagement() {
                                             )}
                                         </div>
                                         <div className="ml-3 flex-1 min-w-0">
-                                            <div className="text-base font-bold text-slate-900 capitalize truncate">
+                                            <div className="text-base font-bold text-fg capitalize truncate">
                                                 {customer.name !== "NA" ? customer.name : 'Unknown Customer'}
                                             </div>
-                                            <div className="text-xs text-slate-500 mt-0.5 max-w-fit">
-                                                <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[10px] border border-slate-200">ID: {customer.uid?.substring(0, 8)}...</span>
+                                            <div className="text-xs text-fg-3 mt-0.5 max-w-fit">
+                                                <span className="font-mono bg-raised px-1.5 py-0.5 rounded text-[10px] border border-line">ID: {customer.uid?.substring(0, 8)}...</span>
                                             </div>
                                         </div>
-                                        <div className="shrink-0 flex items-center bg-emerald-50 max-w-fit px-2 py-1 rounded border border-emerald-100/50">
-                                            <Wallet className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                                            <span className="text-xs font-semibold text-emerald-700">₹{customer.wallet !== "NA" ? Number(customer.wallet).toFixed(0) : '0'}</span>
+                                        <div className="shrink-0 flex items-center bg-ok-soft max-w-fit px-2 py-1 rounded border border-ok/20">
+                                            <Wallet className="w-3.5 h-3.5 mr-1 text-ok" />
+                                            <span className="text-xs font-semibold text-ok">₹{customer.wallet !== "NA" ? Number(customer.wallet).toFixed(0) : '0'}</span>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 bg-slate-50 rounded-lg p-3 border border-slate-100">
+                                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 bg-raised rounded-lg p-3 border border-line/60">
                                         <div className="col-span-2">
-                                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Contact Details</span>
+                                            <span className="text-[10px] font-semibold text-fg-3 uppercase tracking-wider mb-1 block">Contact Details</span>
                                             <div className="space-y-1.5 flex flex-col">
-                                                <div className="flex items-center text-xs text-slate-700 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                                                <div className="flex items-center text-xs text-fg-2 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
                                                     <Phone className="w-3 h-3 mr-1.5 text-primary-500 shrink-0" />
                                                     <span className="truncate">{customer.phone !== "NA" ? customer.phone : 'Unspecified'}</span>
                                                 </div>
-                                                <div className="flex items-center text-xs text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">
+                                                <div className="flex items-center text-xs text-fg-2 whitespace-nowrap overflow-hidden text-ellipsis">
                                                     <Mail className="w-3 h-3 mr-1.5 text-primary-400 shrink-0" />
                                                     <span className="truncate">{customer.email !== "NA" && customer.email ? customer.email : 'Unspecified'}</span>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="col-span-2 pt-2 mt-1 border-t border-slate-200">
-                                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Location</span>
-                                            <div className="flex items-start text-xs text-slate-700">
-                                                <MapPin className="w-3 h-3 mr-1.5 mt-0.5 text-rose-400 shrink-0" />
+                                        <div className="col-span-2 pt-2 mt-1 border-t border-line">
+                                            <span className="text-[10px] font-semibold text-fg-3 uppercase tracking-wider mb-1 block">Location</span>
+                                            <div className="flex items-start text-xs text-fg-2">
+                                                <MapPin className="w-3 h-3 mr-1.5 mt-0.5 text-danger shrink-0" />
                                                 <span className="line-clamp-2">{customer.address !== "NA" ? customer.address : 'Unspecified'} {[customer.state !== "NA" ? customer.state : null, customer.pincode !== "NA" ? customer.pincode : null].filter(Boolean).join(' - ')}</span>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="mt-3 flex justify-end">
-                                        <div className="flex items-center text-[10px] text-slate-400 font-medium bg-white px-2 py-1 rounded-md border border-slate-100">
+                                        <div className="flex items-center text-[10px] text-fg-3 font-medium bg-surface px-2 py-1 rounded-md border border-line/60">
                                             <Calendar className="w-3 h-3 mr-1" />
                                             Joined {formatTimestamp(customer.createdAt).split(',')[0]}
                                         </div>

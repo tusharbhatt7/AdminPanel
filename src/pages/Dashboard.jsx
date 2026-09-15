@@ -53,36 +53,30 @@ export default function Dashboard() {
     const liveValue = (state) => (state.status === 'ok' ? state.count : state.status === 'error' ? null : undefined);
 
     return (
-        <div className="space-y-8">
+        <div className="flex flex-col gap-6">
             {/* Header */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800">Overview</h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                        Platform health at a glance. Every card opens the list behind its number.
+                    <h2 className="text-base font-semibold tracking-tight text-fg">Overview</h2>
+                    <p className="mt-0.5 text-[13px] text-fg-3">
+                        Every tile opens the list behind its number.
                     </p>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <label htmlFor="new-window" className="text-xs font-medium text-slate-500 whitespace-nowrap">
-                        &ldquo;New&rdquo; means
-                    </label>
+                    <label htmlFor="new-window" className="eyebrow whitespace-nowrap">New =</label>
                     <select
                         id="new-window"
                         value={windowDays}
                         onChange={(e) => setWindowDays(Number(e.target.value))}
-                        className="px-3 py-2 text-sm bg-white border rounded-lg border-slate-200 text-slate-700 outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                        className="field w-auto"
                     >
                         {NEW_WINDOW_OPTIONS.map((o) => (
                             <option key={o.days} value={o.days}>{o.label}</option>
                         ))}
                     </select>
-                    <button
-                        onClick={handleRefresh}
-                        disabled={loading}
-                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-white border rounded-lg border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 transition-colors"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    <button onClick={handleRefresh} disabled={loading} className="btn btn-default">
+                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                         <span className="hidden sm:inline">Refresh</span>
                     </button>
                 </div>
@@ -90,8 +84,8 @@ export default function Dashboard() {
 
             {/* Rides */}
             <section>
-                <h3 className="mb-3 text-xs font-semibold tracking-wider uppercase text-slate-400">Rides</h3>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <h3 className="mb-2.5 eyebrow">Rides</h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <StatCard
                         label="Active Rides" value={liveValue(active)} icon={Navigation} tone="primary"
                         to="/rides?status=active" loading={active.status === 'loading'} live emphasis
@@ -121,8 +115,8 @@ export default function Dashboard() {
 
             {/* Customers */}
             <section>
-                <h3 className="mb-3 text-xs font-semibold tracking-wider uppercase text-slate-400">Customers</h3>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <h3 className="mb-2.5 eyebrow">Customers</h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <StatCard
                         label="Total Customers" value={s.totalCustomers} icon={Users} tone="blue"
                         to="/customers" loading={loading} hint="Registered rider accounts"
@@ -137,8 +131,8 @@ export default function Dashboard() {
 
             {/* Drivers */}
             <section>
-                <h3 className="mb-3 text-xs font-semibold tracking-wider uppercase text-slate-400">Drivers</h3>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <h3 className="mb-2.5 eyebrow">Drivers</h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <StatCard
                         label="Total Drivers" value={s.totalDrivers} icon={Car} tone="slate"
                         to="/drivers" loading={loading} hint="All registered driver accounts"
@@ -156,8 +150,8 @@ export default function Dashboard() {
             </section>
 
             {lastUpdated && (
-                <p className="text-xs text-slate-400">
-                    Counts updated {lastUpdated.toLocaleTimeString('en-IN')}. Active and pending rides update live.
+                <p className="font-mono text-[10px] text-fg-3">
+                    Counts updated {lastUpdated.toLocaleTimeString('en-IN')} &middot; active and pending rides stream live
                 </p>
             )}
         </div>

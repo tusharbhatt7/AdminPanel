@@ -1,21 +1,18 @@
 import React from 'react';
+import { Construction } from 'lucide-react';
 
 export default function ComingSoon({ title, description }) {
     return (
-        <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center">
-            <div className="p-8 bg-white border rounded-2xl border-slate-200 shadow-sm max-w-md w-full">
-                <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 rounded-full bg-primary-50 text-primary-500">
-                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
+        <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="w-full max-w-md p-8 text-center panel">
+                <div className="flex items-center justify-center w-10 h-10 mx-auto mb-4 rounded-md bg-raised text-fg-3">
+                    <Construction className="w-5 h-5" />
                 </div>
-                <h2 className="mb-2 text-2xl font-bold text-slate-800">{title}</h2>
-                <p className="mb-6 text-slate-500">
-                    {description || "This module is currently under development. Please check back later!"}
+                <h2 className="text-base font-semibold text-fg">{title}</h2>
+                <p className="mt-2 mb-5 text-[13px] text-fg-2">
+                    {description || 'This module is still being built.'}
                 </p>
-                <span className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-blue-50 text-blue-700">
-                    Coming Soon
-                </span>
+                <span className="pill pill-neutral">Not built yet</span>
             </div>
         </div>
     );
