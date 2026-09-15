@@ -1,9 +1,10 @@
-import { initializeApp, deleteApp } from 'firebase/app';
+import { initializeApp, deleteApp, getApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import {
     collection, doc, getDocs, setDoc, updateDoc, deleteDoc,
     query, orderBy, serverTimestamp,
 } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, auth, firebaseConfig } from '../firebase';
 import { recordAudit, AUDIT_ACTIONS } from './auditService';
 import { ROLES, canManageUser, assignableRoles } from '../lib/roles';
@@ -45,6 +46,31 @@ export const fetchUsers = async () => {
     return snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
 };
 
+/**
+ * Preferred path: the sendInvite Cloud Function. It mints the password-setup
+ * link with the Admin SDK and sends one designed invitation containing it, and
+ * writes its audit entry server-side where a client cannot skip it.
+ *
+ * Returns null when the function is not deployed, so the caller falls back to
+ * the browser-only path below rather than failing.
+ */
+const inviteViaFunction = async ({ email, name, role }) => {
+    try {
+        const fns = getFunctions(getApp(), 'asia-south1');
+        const call = httpsCallable(fns, 'sendInvite');
+        const { data } = await call({ email, name, role });
+        return data;
+    } catch (error) {
+        // Not deployed yet — fall back quietly.
+        if (error.code === 'functions/not-found' || error.code === 'functions/internal') {
+            console.info('sendInvite is not deployed; using the browser-only invite path.');
+            return null;
+        }
+        // A real refusal from the function should surface as itself.
+        throw new AuthError(error.code || 'invite-failed', error.message || 'Could not send the invitation.');
+    }
+};
+
 export const createUser = async ({ email: rawEmail, name, role }, actor) => {
     const email = normaliseEmail(rawEmail);
 
@@ -52,6 +78,9 @@ export const createUser = async ({ email: rawEmail, name, role }, actor) => {
     if (!assignableRoles(actor.role).includes(role)) {
         throw new AuthError('forbidden-role', 'You cannot assign that role.');
     }
+
+    const viaFunction = await inviteViaFunction({ email, name, role });
+    if (viaFunction) return { ...viaFunction, oneEmail: true };
 
     // Secondary app: creating on the primary would replace the admin's session.
     const secondary = initializeApp(firebaseConfig, `admin-create-${Date.now()}`);
@@ -90,7 +119,14 @@ export const createUser = async ({ email: rawEmail, name, role }, actor) => {
 
     await recordAudit({
         actor, action: AUDIT_ACTIONS.USER_CREATED, targetType: 'user',
-        targetId: newUid, targetLabel: email, metadata: { role, inviteEmailSent: true },
+        targetId: newUid, targetLabel: email, metadata: { role, invitedVia: 'browser-fallback' },
+    });
+
+    // Recorded as its own action rather than buried in the entry above, so the
+    // audit page's action filter can surface every password-related event.
+    await recordAudit({
+        actor, action: AUDIT_ACTIONS.PASSWORD_RESET_SENT, targetType: 'user',
+        targetId: newUid, targetLabel: email, metadata: { reason: 'invitation' },
     });
 
     return { uid: newUid, email, role };
