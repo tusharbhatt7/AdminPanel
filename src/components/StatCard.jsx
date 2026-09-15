@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, AlertTriangle } from 'lucide-react';
+import { useCountUp } from '../lib/useCountUp';
 
 // Semantic tone, kept separate from the brand accent so status reads as status.
 const TONES = {
@@ -22,17 +23,20 @@ export default function StatCard(props) {
         loading = false, live = false, emphasis = false, warning = null,
     } = props;
     const Icon = props.icon;
+    const index = props.index ?? 0;
     const t = TONES[tone] || TONES.slate;
     const unavailable = !loading && (value === null || value === undefined);
+    const shown = useCountUp(typeof value === 'number' ? value : null);
 
     return (
         <Link
             to={to}
             aria-label={`${label}: ${unavailable ? 'unavailable' : value}. View details.`}
-            style={{ '--stripe-color': t.stripe }}
-            className={`stripe group flex flex-col gap-3 p-4 pl-5 rounded-lg bg-surface border
-                transition-colors duration-150 hover:bg-raised
-                ${emphasis ? 'border-line-strong' : 'border-line'}`}
+            style={{ '--stripe-color': t.stripe, animationDelay: `${index * 35}ms` }}
+            className={`stripe rise group flex flex-col gap-3 p-4 pl-5 rounded-lg bg-surface border
+                transition-[background-color,box-shadow,transform] duration-200
+                hover:bg-raised hover:-translate-y-px
+                ${emphasis ? 'border-line-strong glow' : 'border-line lift'}`}
         >
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center min-w-0 gap-2">
@@ -56,8 +60,8 @@ export default function StatCard(props) {
                 ) : unavailable ? (
                     <span className="font-mono text-2xl font-semibold text-fg-3" title="This metric could not be loaded">—</span>
                 ) : (
-                    <span className={`font-mono text-[28px] leading-none font-semibold tabular ${t.value}`}>
-                        {value.toLocaleString('en-IN')}
+                    <span className={`font-mono text-[30px] leading-none font-semibold tabular tracking-tight ${t.value}`}>
+                        {shown.toLocaleString('en-IN')}
                     </span>
                 )}
             </div>

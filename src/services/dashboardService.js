@@ -1,6 +1,6 @@
 import {
     collection, query, where, orderBy, limit,
-    getCountFromServer, onSnapshot, Timestamp,
+    getCountFromServer, getDocs, onSnapshot, Timestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import {
@@ -97,6 +97,48 @@ export const listenToActiveRides = (onUpdate, onError) => {
             onError?.(error);
         },
     );
+};
+
+/**
+ * Daily ride counts for the trend chart. Returns one bucket per calendar day in
+ * the window, including days with zero rides — the gaps are real information
+ * here, since activity on this platform is bursty rather than continuous.
+ *
+ * Costs one document read per ride in the window (~195 over 90 days today), so
+ * it is fetched separately from the counts and never blocks them.
+ */
+export const fetchRideVolume = async (days = 90) => {
+    const since = cutoffFor(days);
+    const q = query(
+        collection(db, 'ride_requests'),
+        where('requestTime', '>=', since),
+        orderBy('requestTime', 'asc'),
+    );
+
+    const snapshot = await getDocs(q);
+
+    // Pre-seed every day so a quiet day renders as zero rather than disappearing.
+    const buckets = new Map();
+    const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const cursor = startOfDay(since.toDate());
+    const today = startOfDay(new Date());
+    while (cursor <= today) {
+        buckets.set(cursor.toISOString().slice(0, 10), { date: new Date(cursor), total: 0, completed: 0, cancelled: 0 });
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    snapshot.forEach((doc) => {
+        const data = doc.data();
+        const at = data.requestTime?.toDate?.();
+        if (!at) return;
+        const bucket = buckets.get(startOfDay(at).toISOString().slice(0, 10));
+        if (!bucket) return;
+        bucket.total += 1;
+        if (data.status === 'completed') bucket.completed += 1;
+        else if (data.status === 'cancelled') bucket.cancelled += 1;
+    });
+
+    return [...buckets.values()];
 };
 
 /** Live count of riders currently waiting for a driver to accept. */
