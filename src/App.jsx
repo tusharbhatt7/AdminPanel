@@ -11,6 +11,9 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import RideManagement from './pages/RideManagement';
+import Payments from './pages/Payments';
+import Reviews from './pages/Reviews';
+import { Complaints, Promotions, Fleet, Zones, Notifications } from './pages/modules';
 import DriverManagement from './pages/DriverManagement';
 import CustomerManagement from './pages/CustomerManagement';
 import SafetyCompliance from './pages/SafetyCompliance';
@@ -114,6 +117,13 @@ function App() {
           <Route path="rides" element={<RideManagement />} />
           <Route path="drivers" element={<DriverManagement />} />
           <Route path="customers" element={<CustomerManagement />} />
+          <Route path="payments" element={<Payments />} />
+          <Route path="complaints" element={<Complaints />} />
+          <Route path="reviews" element={<Reviews />} />
+          <Route path="promotions" element={<Promotions />} />
+          <Route path="fleet" element={<Fleet />} />
+          <Route path="zones" element={<Zones />} />
+          <Route path="notifications" element={<Notifications />} />
           <Route path="safety" element={<SafetyCompliance />} />
           <Route path="analytics" element={<BusinessAnalytics />} />
           <Route path="advertisements" element={<Advertisements />} />

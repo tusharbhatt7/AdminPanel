@@ -6,88 +6,96 @@
 
 @layer base {
   /* ── Dark is the default: this panel is watched all day by dispatch staff ── */
+  /* Dark is the alternate. The sidebar stays navy in both themes — it is a
+     fixed part of the brand, not a themed surface. */
   :root,
   .dark {
-    --c-canvas: #0a0e14;
-    --c-surface: #10161e;
-    --c-raised: #172029;
-    --c-line: #1f2a36;
-    --c-line-strong: #2d3c4c;
+    --c-canvas: #0d1420;
+    --c-surface: #131c2b;
+    --c-raised: #1a2537;
+    --c-line: #223045;
+    --c-line-strong: #2f4059;
 
-    --c-fg: #e4ecf4;
-    --c-fg-2: #9cafc1;
-    --c-fg-3: #64778a;
+    --c-fg: #e6edf6;
+    --c-fg-2: #9fb0c6;
+    --c-fg-3: #6b7d94;
 
-    --c-brand: #2dd4bf;
-    --c-brand-strong: #14b8a6;
-    --c-brand-fg: #04211e;
-    --c-brand-soft: #0e2f2c;
+    --c-brand: #f5b301;
+    --c-brand-strong: #d99b00;
+    --c-brand-fg: #1a1205;
+    --c-brand-soft: #2e2510;
+    --c-brand-ink: #f5b301;
+    --c-link: #60a5fa;
 
-    --c-ok: #34d399;
-    --c-ok-soft: #0c2c23;
+    --c-ok: #4ade80;
+    --c-ok-soft: #0f2e1e;
     --c-warn: #fbbf24;
     --c-warn-soft: #2f2412;
-    --c-danger: #fb7185;
-    --c-danger-soft: #311620;
+    --c-danger: #f87171;
+    --c-danger-soft: #311619;
     --c-info: #60a5fa;
     --c-info-soft: #12233d;
     --c-violet: #a78bfa;
     --c-violet-soft: #221b3a;
 
-    --c-shadow: 0 0 0 1px rgb(0 0 0 / 0.35), 0 8px 24px -12px rgb(0 0 0 / 0.7);
+    --c-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -14px rgb(0 0 0 / 0.6);
 
-    /* Chart marks. Separate from the status tokens above, which are tuned for
-       pill/text contrast. These four were run through the palette validator in
-       this exact order (completed, active, pending, cancelled) and pass the
-       lightness band, chroma floor, CVD separation and contrast checks against
-       the dark chart surface. Re-validate before changing any of them. */
     --c-series-completed: #059669;
     --c-series-active: #3b82f6;
     --c-series-pending: #d97706;
     --c-series-cancelled: #e11d48;
-    --c-grid: #1c2733;
+    --c-grid: #223045;
 
     color-scheme: dark;
   }
 
   .light {
-    --c-canvas: #f3f6f9;
+    --c-canvas: #f4f6fa;
     --c-surface: #ffffff;
-    --c-raised: #eef2f6;
-    --c-line: #dee5ed;
-    --c-line-strong: #c3d0de;
+    --c-raised: #f6f8fc;
+    --c-line: #e7ecf3;
+    --c-line-strong: #d3dce7;
 
-    --c-fg: #0e1720;
-    --c-fg-2: #4c5d70;
-    --c-fg-3: #7b8b9d;
+    --c-fg: #131c2b;
+    --c-fg-2: #55677d;
+    --c-fg-3: #8a99ab;
 
-    --c-brand: #0d9488;
-    --c-brand-strong: #0f766e;
-    --c-brand-fg: #ffffff;
-    --c-brand-soft: #dff4f1;
+    --c-brand: #f5b301;
+    --c-brand-strong: #d99b00;
+    --c-brand-fg: #1a1205;
+    --c-brand-soft: #fef6e0;
+    --c-brand-ink: #7d5a00;
+    --c-link: #2563eb;
 
-    --c-ok: #047857;
-    --c-ok-soft: #d6f5e6;
-    --c-warn: #a15c07;
-    --c-warn-soft: #fdf0d5;
-    --c-danger: #cf2b3f;
-    --c-danger-soft: #fde3e6;
-    --c-info: #1d4ed8;
-    --c-info-soft: #dce8fd;
-    --c-violet: #6d28d9;
-    --c-violet-soft: #eae4fd;
+    --c-ok: #16a34a;
+    --c-ok-soft: #dcfce7;
+    --c-warn: #d97706;
+    --c-warn-soft: #fef3c7;
+    --c-danger: #dc2626;
+    --c-danger-soft: #fee2e2;
+    --c-info: #2563eb;
+    --c-info-soft: #dbeafe;
+    --c-violet: #7c3aed;
+    --c-violet-soft: #ede9fe;
 
-    --c-shadow: 0 1px 2px rgb(16 28 40 / 0.06), 0 8px 24px -14px rgb(16 28 40 / 0.28);
+    --c-shadow: 0 1px 2px rgb(19 28 43 / 0.05), 0 6px 20px -12px rgb(19 28 43 / 0.2);
 
-    /* Re-stepped for white, not flipped from dark: the dark red/amber pair fails
-       the normal-vision floor on a light surface. Validated in the same order. */
     --c-series-completed: #047857;
     --c-series-active: #2563eb;
     --c-series-pending: #d97706;
     --c-series-cancelled: #be123c;
-    --c-grid: #e6ebf1;
+    --c-grid: #e9eef5;
 
     color-scheme: light;
+  }
+
+  /* The navigation rail is navy in every theme. */
+  :root {
+    --c-nav: #101a2e;
+    --c-nav-2: #1a2540;
+    --c-nav-fg: #ccd7e8;
+    --c-nav-fg-3: #7b8aa3;
+    --c-nav-line: #1e2b47;
   }
 
   /* `inline` makes each utility emit var(--c-*) rather than a baked value,
@@ -107,6 +115,7 @@
     --color-brand-strong: var(--c-brand-strong);
     --color-brand-fg: var(--c-brand-fg);
     --color-brand-soft: var(--c-brand-soft);
+    --color-brand-ink: var(--c-brand-ink);
 
     --color-ok: var(--c-ok);
     --color-ok-soft: var(--c-ok-soft);
@@ -118,6 +127,13 @@
     --color-info-soft: var(--c-info-soft);
     --color-violet: var(--c-violet);
     --color-violet-soft: var(--c-violet-soft);
+
+    --color-link: var(--c-link);
+    --color-nav: var(--c-nav);
+    --color-nav-2: var(--c-nav-2);
+    --color-nav-fg: var(--c-nav-fg);
+    --color-nav-fg-3: var(--c-nav-fg-3);
+    --color-nav-line: var(--c-nav-line);
 
     --color-series-completed: var(--c-series-completed);
     --color-series-active: var(--c-series-active);
@@ -257,7 +273,7 @@
   .pill-danger  { @apply bg-danger-soft text-danger; }
   .pill-info    { @apply bg-info-soft text-info; }
   .pill-violet  { @apply bg-violet-soft text-violet; }
-  .pill-brand   { @apply bg-brand-soft text-brand; }
+  .pill-brand   { @apply bg-brand-soft text-brand-ink; }
   .pill-neutral { @apply bg-raised text-fg-3; }
 
   /* ── Dense data tables ──────────────────────────────────────────────── */

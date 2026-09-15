@@ -195,7 +195,7 @@ export default function CustomerManagement() {
                                     >
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
-                                                <div className="flex-shrink-0 w-10 h-10 bg-primary-100/50 rounded-full flex items-center justify-center text-primary-700 font-bold border border-primary-200 relative overflow-hidden">
+                                                <div className="flex-shrink-0 w-10 h-10 bg-primary-100/50 rounded-full flex items-center justify-center text-brand-ink font-bold border border-primary-200 relative overflow-hidden">
                                                     {(customer.photoUrl && customer.photoUrl !== "NA") ? (
                                                         <img src={customer.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
                                                     ) : (
@@ -280,7 +280,7 @@ export default function CustomerManagement() {
                                     className="bg-surface border border-line rounded-lg p-4 transition-all active:scale-[0.98] cursor-pointer"
                                 >
                                     <div className="flex items-center mb-4">
-                                        <div className="flex-shrink-0 w-12 h-12 bg-primary-100/50 rounded-full flex items-center justify-center text-primary-700 font-bold border border-primary-200 relative overflow-hidden">
+                                        <div className="flex-shrink-0 w-12 h-12 bg-primary-100/50 rounded-full flex items-center justify-center text-brand-ink font-bold border border-primary-200 relative overflow-hidden">
                                             {(customer.photoUrl && customer.photoUrl !== "NA") ? (
                                                 <img src={customer.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
                                             ) : (
@@ -306,11 +306,11 @@ export default function CustomerManagement() {
                                             <span className="text-[10px] font-semibold text-fg-3 uppercase tracking-wider mb-1 block">Contact Details</span>
                                             <div className="space-y-1.5 flex flex-col">
                                                 <div className="flex items-center text-xs text-fg-2 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
-                                                    <Phone className="w-3 h-3 mr-1.5 text-primary-500 shrink-0" />
+                                                    <Phone className="w-3 h-3 mr-1.5 text-brand-ink shrink-0" />
                                                     <span className="truncate">{customer.phone !== "NA" ? customer.phone : 'Unspecified'}</span>
                                                 </div>
                                                 <div className="flex items-center text-xs text-fg-2 whitespace-nowrap overflow-hidden text-ellipsis">
-                                                    <Mail className="w-3 h-3 mr-1.5 text-primary-400 shrink-0" />
+                                                    <Mail className="w-3 h-3 mr-1.5 text-brand-ink shrink-0" />
                                                     <span className="truncate">{customer.email !== "NA" && customer.email ? customer.email : 'Unspecified'}</span>
                                                 </div>
                                             </div>

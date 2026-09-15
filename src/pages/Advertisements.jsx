@@ -138,7 +138,7 @@ export default function Advertisements() {
 
                 {loading ? (
                     <div className="flex items-center justify-center h-64">
-                        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+                        <Loader2 className="w-8 h-8 animate-spin text-brand-ink" />
                     </div>
                 ) : ads.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 bg-surface border rounded-lg border-line">
@@ -164,13 +164,13 @@ export default function Advertisements() {
                                     <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleDelete(ad); }}
-                                            className="p-1.5 bg-danger text-brand-fg rounded-lg hover:bg-danger transition-colors backdrop-blur-sm z-10"
+                                            className="p-1.5 bg-danger text-white rounded-lg hover:bg-danger transition-colors backdrop-blur-sm z-10"
                                             title="Delete Ad"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                     </div>
-                                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-canvas/80 backdrop-blur-sm rounded-md text-brand-fg text-xs font-medium flex items-center">
+                                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-canvas/80 backdrop-blur-sm rounded-md text-fg text-xs font-medium flex items-center">
                                         {ad.adType === 'video' ? <Video className="w-3 h-3 mr-1" /> : <ImageIcon className="w-3 h-3 mr-1" />}
                                         <span className="capitalize">{ad.adType}</span>
                                     </div>
@@ -182,7 +182,7 @@ export default function Advertisements() {
                                             <p className="text-xs text-fg-3 mt-0.5">Price: ₹{ad.adPrice}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-semibold text-primary-600">{ad.impressions || 0}</p>
+                                            <p className="text-sm font-semibold text-brand-ink">{ad.impressions || 0}</p>
                                             <p className="text-xs text-fg-3">Impressions</p>
                                         </div>
                                     </div>
@@ -206,7 +206,7 @@ export default function Advertisements() {
                                     type="file"
                                     accept="image/*,video/*"
                                     onChange={handleFileChange}
-                                    className="w-full text-sm text-fg-3 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 border border-line rounded-lg cursor-pointer"
+                                    className="w-full text-sm text-fg-3 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-brand-ink hover:file:bg-primary-100 border border-line rounded-lg cursor-pointer"
                                     disabled={uploading}
                                     required
                                 />
@@ -285,7 +285,7 @@ export default function Advertisements() {
                     >
                         <button
                             onClick={() => setSelectedAd(null)}
-                            className="absolute -top-12 right-0 p-2 text-brand-fg/70 hover:text-brand-fg transition-colors"
+                            className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white transition-colors"
                         >
                             <X className="w-8 h-8" />
                         </button>
