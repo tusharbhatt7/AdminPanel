@@ -7,6 +7,7 @@ import {
     RIDE_PRESETS, isRidePreset, statusStyle, statusLabel,
     formatAge, formatDateTime, formatCurrency, isStaleActive, STALE_ACTIVE_HOURS,
 } from '../lib/rideStatus';
+import { looksEncrypted } from '../lib/pii';
 
 const EMPTY_FEED = { status: 'loading', rides: [], lastDoc: null, hasMore: false, atLimit: false, error: null, forPreset: null };
 
@@ -212,7 +213,11 @@ export default function RideManagement() {
                                                 </td>
                                                 <td className="px-5 py-3.5">
                                                     <div className="truncate text-slate-700">{ride.driverName || <span className="text-slate-400">Unassigned</span>}</div>
-                                                    {ride.vehicleNumber && <div className="text-xs text-slate-500">{ride.vehicleNumber}</div>}
+                                                    {ride.vehicleNumber && (
+                                                        looksEncrypted(ride.vehicleNumber)
+                                                            ? <div className="text-xs italic text-slate-300" title="Stored encrypted by the driver app; this panel has no key">encrypted</div>
+                                                            : <div className="text-xs text-slate-500">{ride.vehicleNumber}</div>
+                                                    )}
                                                 </td>
                                                 <td className="px-5 py-3.5 whitespace-nowrap">
                                                     <div className="text-slate-700">{formatAge(ride.requestTime)}</div>

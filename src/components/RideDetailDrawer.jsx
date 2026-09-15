@@ -7,6 +7,7 @@ import {
     statusStyle, statusLabel, formatDateTime, formatAge,
     formatCurrency, isStaleActive, STALE_ACTIVE_HOURS,
 } from '../lib/rideStatus';
+import { plainOrNull } from '../lib/pii';
 
 const Row = (props) => {
     const RowIcon = props.icon;
@@ -117,7 +118,10 @@ export default function RideDetailDrawer({ ride, isOpen, onClose }) {
 
                     <Section title="Driver">
                         <Row icon={User} label="Name" value={ride.driverName} />
-                        <Row icon={Car} label="Vehicle" value={[ride.vehicleDisplayName, ride.vehicleNumber].filter(Boolean).join(' · ') || null} />
+                        <Row
+                            icon={Car} label="Vehicle"
+                            value={[ride.vehicleDisplayName, plainOrNull(ride.vehicleNumber)].filter(Boolean).join(' · ') || null}
+                        />
                         <Row icon={Hash} label="Driver ID" value={ride.assignedDriverId} mono />
                     </Section>
 
