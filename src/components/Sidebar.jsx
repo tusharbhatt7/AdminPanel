@@ -5,7 +5,7 @@ import { auth } from '../firebase';
 import toast from 'react-hot-toast';
 import {
     LayoutDashboard, Route as RouteIcon, Car, Users, CreditCard, MessageSquareWarning,
-    Star, BarChart3, TicketPercent, Truck, MapPin, Bell, Settings, LogOut, X,
+    Star, BarChart3, TicketPercent, MonitorPlay, Truck, MapPin, Bell, Settings, LogOut, X,
 } from 'lucide-react';
 
 const navItems = [
@@ -18,6 +18,7 @@ const navItems = [
     { path: '/reviews', name: 'Reviews', icon: Star },
     { path: '/analytics', name: 'Analytics', icon: BarChart3 },
     { path: '/promotions', name: 'Promotions', icon: TicketPercent },
+    { path: '/advertisements', name: 'Advertisements', icon: MonitorPlay },
     { path: '/fleet', name: 'Fleet Management', icon: Truck },
     { path: '/zones', name: 'Cities & Zones', icon: MapPin },
     { path: '/notifications', name: 'Notifications', icon: Bell },

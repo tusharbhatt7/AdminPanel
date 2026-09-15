@@ -1,9 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { collection, query, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../firebase';
-import { Plus, Trash2, Video, Image as ImageIcon, Loader2, X } from 'lucide-react';
+import {
+    Plus, Trash2, Video, Image as ImageIcon, Loader2, X, Play,
+    MonitorPlay, Eye, IndianRupee, CircleCheck, AlertTriangle,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const money = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+
+// The audit found a second, typo'd counter on some ad documents: "impressions "
+// with a trailing space. Read both so the UI never under-reports, and say so.
+const STRAY_KEY = 'impressions ';
+const impressionsOf = (ad) => Number(ad.impressions || 0) + Number(ad[STRAY_KEY] || 0);
+const hasStrayField = (ad) => Object.prototype.hasOwnProperty.call(ad, STRAY_KEY);
 
 export default function Advertisements() {
     const [ads, setAds] = useState([]);
@@ -119,181 +130,264 @@ export default function Advertisements() {
         }
     };
 
-    return (
-        <div className="flex flex-col h-full bg-raised">
-            <div className="p-8">
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h1 className="text-2xl font-bold text-fg">Advertisements</h1>
-                        <p className="mt-1 text-fg-3">Manage promotional banners and videos.</p>
-                    </div>
-                    <button
-                        onClick={() => setShowUploadModal(true)}
-                        className="flex items-center px-4 py-2 text-brand-fg transition-colors rounded-lg bg-primary-600 hover:bg-primary-700"
-                    >
-                        <Plus className="w-5 h-5 mr-2" />
-                        Upload New Ad
-                    </button>
-                </div>
+    const stats = useMemo(() => {
+        const impressions = ads.reduce((a, ad) => a + impressionsOf(ad), 0);
+        const prices = ads.map((a) => Number(a.adPrice || 0)).filter((n) => n > 0);
+        return {
+            total: ads.length,
+            active: ads.filter((a) => a.isActive !== false).length,
+            impressions,
+            avgPrice: prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0,
+            stray: ads.filter(hasStrayField).length,
+        };
+    }, [ads]);
 
-                {loading ? (
-                    <div className="flex items-center justify-center h-64">
-                        <Loader2 className="w-8 h-8 animate-spin text-brand-ink" />
-                    </div>
-                ) : ads.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 bg-surface border rounded-lg border-line">
-                        <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-raised">
-                            <Video className="w-8 h-8 text-fg-3" />
-                        </div>
-                        <p className="text-lg font-medium text-fg">No advertisements found</p>
-                        <p className="text-fg-3">Upload your first ad to get started.</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {ads.map((ad) => (
-                            <div key={ad.id} className="overflow-hidden bg-surface border rounded-lg border-line flex flex-col group">
-                                <div
-                                    className="relative aspect-video bg-raised flex items-center justify-center cursor-pointer group-hover:opacity-90 transition-opacity"
-                                    onClick={() => setSelectedAd(ad)}
-                                >
-                                    {ad.adType === 'video' ? (
-                                        <video src={ad.adUrl} className="object-cover w-full h-full" playsInline />
-                                    ) : (
-                                        <img src={ad.adUrl} alt="Ad" className="object-cover w-full h-full" />
-                                    )}
-                                    <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleDelete(ad); }}
-                                            className="p-1.5 bg-danger text-white rounded-lg hover:bg-danger transition-colors backdrop-blur-sm z-10"
-                                            title="Delete Ad"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-canvas/80 backdrop-blur-sm rounded-md text-fg text-xs font-medium flex items-center">
-                                        {ad.adType === 'video' ? <Video className="w-3 h-3 mr-1" /> : <ImageIcon className="w-3 h-3 mr-1" />}
-                                        <span className="capitalize">{ad.adType}</span>
-                                    </div>
-                                </div>
-                                <div className="p-4 flex-1 flex flex-col justify-between">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <p className="text-sm font-medium text-fg truncate" title={ad.adId}>{ad.adId}</p>
-                                            <p className="text-xs text-fg-3 mt-0.5">Price: ₹{ad.adPrice}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-semibold text-brand-ink">{ad.impressions || 0}</p>
-                                            <p className="text-xs text-fg-3">Impressions</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+    const kpis = [
+        { label: 'Total Ads', value: stats.total, icon: MonitorPlay, tone: 'bg-info-soft text-info' },
+        { label: 'Active', value: stats.active, icon: CircleCheck, tone: 'bg-ok-soft text-ok' },
+        { label: 'Total Impressions', value: stats.impressions, icon: Eye, tone: 'bg-violet-soft text-violet' },
+        { label: 'Average Price', value: stats.avgPrice, prefix: '₹', icon: IndianRupee, tone: 'bg-brand-soft text-brand-ink' },
+    ];
+
+    return (
+        <div className="flex flex-col gap-4">
+            {/* Header */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-[20px] font-bold tracking-tight text-fg">Advertisements</h1>
+                    <p className="mt-0.5 text-[13px] text-fg-2">
+                        In-app promotional banners and videos served to riders.
+                    </p>
+                </div>
+                <button onClick={() => setShowUploadModal(true)} className="btn btn-primary">
+                    <Plus className="w-4 h-4" /> Upload Ad
+                </button>
             </div>
 
-            {/* Upload Modal */}
-            {showUploadModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-canvas/80 backdrop-blur-sm">
-                    <div className="w-full max-w-md bg-surface rounded-lg shadow-xl overflow-hidden p-6 animate-in slide-in-from-bottom-4 duration-200">
-                        <h2 className="text-xl font-bold text-fg mb-6">Upload Advertisement</h2>
+            {/* KPIs */}
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {kpis.map((s) => {
+                    const Icon = s.icon;
+                    return (
+                        <div key={s.label} className="flex flex-col p-4 border rounded-xl bg-surface border-line lift">
+                            <div className="flex items-center gap-2.5 mb-3">
+                                <span className={`flex items-center justify-center w-9 h-9 rounded-full shrink-0 ${s.tone}`}>
+                                    <Icon className="w-[18px] h-[18px]" />
+                                </span>
+                                <span className="text-[12px] font-medium leading-tight text-fg-2">{s.label}</span>
+                            </div>
+                            {loading ? (
+                                <div className="w-16 h-7 skeleton" />
+                            ) : (
+                                <p className="text-[24px] font-bold leading-none tracking-tight text-fg tabular">
+                                    {s.prefix || ''}{s.value.toLocaleString('en-IN')}
+                                </p>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
 
-                        <form onSubmit={handleUpload} className="space-y-4">
+            {stats.stray > 0 && (
+                <div className="flex items-start gap-2 px-3 py-2.5 text-[13px] border rounded-lg bg-warn-soft border-warn/30 text-fg-2">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-warn" />
+                    <span>
+                        <strong className="text-fg">{stats.stray}</strong> of these documents carry a second impression
+                        counter named <code className="font-mono text-[11px]">&quot;impressions&nbsp;&quot;</code> with a
+                        trailing space. Both are counted above, but whichever writer produced it should be fixed.
+                    </span>
+                </div>
+            )}
+
+            {/* Grid */}
+            {loading ? (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-56 skeleton rounded-xl" />)}
+                </div>
+            ) : ads.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 border rounded-xl bg-surface border-line lift">
+                    <MonitorPlay className="w-8 h-8 mb-3 text-fg-3 opacity-50" />
+                    <p className="text-[14px] font-medium text-fg">No advertisements yet</p>
+                    <p className="mt-1 mb-4 text-[13px] text-fg-3">Upload a banner or video to start serving ads.</p>
+                    <button onClick={() => setShowUploadModal(true)} className="btn btn-primary">
+                        <Plus className="w-4 h-4" /> Upload Ad
+                    </button>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {ads.map((ad) => {
+                        const seen = impressionsOf(ad);
+                        const cap = Number(ad.maxImpressions || 0);
+                        const pct = cap ? Math.min((seen / cap) * 100, 100) : null;
+                        const isVideo = ad.adType === 'video';
+                        return (
+                            <div key={ad.id} className="flex flex-col overflow-hidden border rounded-xl bg-surface border-line lift group">
+                                {/* Preview */}
+                                <button
+                                    onClick={() => setSelectedAd(ad)}
+                                    className="relative block w-full overflow-hidden aspect-video bg-raised"
+                                    aria-label="Preview advertisement"
+                                >
+                                    {isVideo ? (
+                                        <>
+                                            <video src={ad.adUrl} className="object-cover w-full h-full" muted playsInline preload="metadata" />
+                                            <span className="absolute inset-0 flex items-center justify-center">
+                                                <span className="flex items-center justify-center rounded-full w-9 h-9 bg-canvas/70 backdrop-blur-sm">
+                                                    <Play className="w-4 h-4 text-fg" />
+                                                </span>
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <img src={ad.adUrl} alt="" className="object-cover w-full h-full" loading="lazy" />
+                                    )}
+
+                                    <span className="absolute flex items-center gap-1 px-2 py-1 rounded-md top-2 left-2 bg-canvas/80 backdrop-blur-sm">
+                                        {isVideo ? <Video className="w-3 h-3 text-fg" /> : <ImageIcon className="w-3 h-3 text-fg" />}
+                                        <span className="text-[10px] font-semibold uppercase tracking-wide text-fg">{ad.adType || 'image'}</span>
+                                    </span>
+
+                                    {ad.isActive === false && (
+                                        <span className="absolute top-2 right-2 pill pill-neutral">paused</span>
+                                    )}
+                                </button>
+
+                                {/* Meta */}
+                                <div className="flex flex-col gap-2.5 p-3">
+                                    <div className="flex items-baseline justify-between gap-2">
+                                        <span className="font-mono text-[15px] font-semibold text-fg">{money(ad.adPrice)}</span>
+                                        <span className="font-mono text-[11px] text-fg-3 truncate" title={ad.adId}>{ad.adId}</span>
+                                    </div>
+
+                                    <div>
+                                        <div className="flex items-baseline justify-between mb-1">
+                                            <span className="text-[11px] text-fg-3">Impressions</span>
+                                            <span className="font-mono text-[11px] text-fg tabular">
+                                                {seen.toLocaleString('en-IN')}{cap ? ` / ${cap.toLocaleString('en-IN')}` : ''}
+                                            </span>
+                                        </div>
+                                        {pct !== null ? (
+                                            <div className="h-1.5 overflow-hidden rounded-full bg-raised">
+                                                <div
+                                                    className="h-full rounded-full bg-info"
+                                                    style={{ width: `${pct}%` }}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <p className="text-[10px] text-fg-3">no cap set</p>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        onClick={() => handleDelete(ad)}
+                                        className="w-full btn btn-danger btn-sm"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Upload modal */}
+            {showUploadModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-fg/40 backdrop-blur-sm">
+                    <div className="w-full max-w-md p-5 border rounded-xl bg-surface border-line shadow-2xl">
+                        <div className="flex items-start justify-between mb-4">
                             <div>
-                                <label className="block text-sm font-medium text-fg-2 mb-1">Ad Media (Image/Video)</label>
+                                <h2 className="text-[16px] font-semibold text-fg">Upload advertisement</h2>
+                                <p className="mt-0.5 text-[12px] text-fg-3">Image or video, served in the rider app.</p>
+                            </div>
+                            <button
+                                onClick={() => !uploading && setShowUploadModal(false)}
+                                aria-label="Close"
+                                className="p-1.5 rounded-md text-fg-3 hover:bg-raised hover:text-fg transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUpload} className="flex flex-col gap-4">
+                            <div>
+                                <label htmlFor="ad-file" className="field-label">Media file</label>
                                 <input
-                                    type="file"
-                                    accept="image/*,video/*"
-                                    onChange={handleFileChange}
-                                    className="w-full text-sm text-fg-3 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-brand-ink hover:file:bg-primary-100 border border-line rounded-lg cursor-pointer"
-                                    disabled={uploading}
-                                    required
+                                    id="ad-file" type="file" accept="image/*,video/*" onChange={handleFileChange}
+                                    className="w-full text-[13px] text-fg-3 file:mr-3 file:py-2 file:px-3 file:rounded-md
+                                               file:border-0 file:text-[13px] file:font-medium file:bg-brand file:text-brand-fg
+                                               hover:file:bg-brand-strong border border-line rounded-md cursor-pointer bg-raised p-1"
+                                />
+                                {file && (
+                                    <p className="mt-1.5 text-[11px] text-fg-3 truncate">
+                                        {file.name} &middot; {(file.size / 1024 / 1024).toFixed(1)} MB
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label htmlFor="ad-price" className="field-label">Price (₹)</label>
+                                <input
+                                    id="ad-price" type="number" min="0" value={adPrice}
+                                    onChange={(e) => setAdPrice(e.target.value)}
+                                    placeholder="e.g. 500" className="field"
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-fg-2 mb-1">Price per View/Click (₹)</label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-3">₹</span>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={adPrice}
-                                        onChange={(e) => setAdPrice(e.target.value)}
-                                        className="w-full pl-8 pr-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-shadow"
-                                        placeholder="10"
-                                        disabled={uploading}
-                                        required
-                                    />
-                                </div>
-                            </div>
-
                             {uploading && (
-                                <div className="w-full bg-raised rounded-full h-2.5 mt-4 overflow-hidden">
-                                    <div
-                                        className="bg-primary-600 h-2.5 rounded-full transition-all duration-300 relative"
-                                        style={{ width: `${uploadProgress}%` }}
-                                    >
-                                        <div className="absolute inset-0 bg-raised animate-pulse"></div>
+                                <div>
+                                    <div className="flex justify-between mb-1 text-[11px] text-fg-3">
+                                        <span>Uploading</span>
+                                        <span className="font-mono tabular">{Math.round(uploadProgress)}%</span>
+                                    </div>
+                                    <div className="h-1.5 overflow-hidden rounded-full bg-raised">
+                                        <div className="h-full transition-all rounded-full bg-brand" style={{ width: `${uploadProgress}%` }} />
                                     </div>
                                 </div>
                             )}
 
-                            <div className="flex justify-end space-x-3 pt-4 border-t border-line/60 mt-6">
+                            <div className="flex justify-end gap-2 pt-1">
                                 <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (!uploading) {
-                                            setShowUploadModal(false);
-                                            setFile(null);
-                                            setAdPrice('');
-                                        }
-                                    }}
-                                    className="px-4 py-2 text-fg-2 hover:bg-raised rounded-lg transition-colors font-medium text-sm"
-                                    disabled={uploading}
+                                    type="button" disabled={uploading}
+                                    onClick={() => setShowUploadModal(false)}
+                                    className="btn btn-default"
                                 >
                                     Cancel
                                 </button>
-                                <button
-                                    type="submit"
-                                    disabled={uploading || !file || !adPrice}
-                                    className="px-4 py-2 bg-primary-600 text-brand-fg rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center hover:shadow"
-                                >
-                                    {uploading ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            Uploading {Math.round(uploadProgress)}%
-                                        </>
-                                    ) : 'Upload Ad'}
+                                <button type="submit" disabled={uploading} className="btn btn-primary">
+                                    {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    {uploading ? 'Uploading' : 'Upload'}
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-            {/* View Ad Modal */}
+
+            {/* Preview modal */}
             {selectedAd && (
                 <div
-                    className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-canvas/90 backdrop-blur-sm"
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-fg/60 backdrop-blur-sm"
                     onClick={() => setSelectedAd(null)}
                 >
-                    <div
-                        className="relative w-full max-w-4xl max-h-screen flex items-center justify-center animate-in zoom-in-95 duration-200"
-                        onClick={e => e.stopPropagation()}
-                    >
+                    <div className="relative w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
                         <button
                             onClick={() => setSelectedAd(null)}
-                            className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white transition-colors"
+                            aria-label="Close preview"
+                            className="absolute right-0 p-2 transition-colors -top-10 text-white/70 hover:text-white"
                         >
-                            <X className="w-8 h-8" />
+                            <X className="w-5 h-5" />
                         </button>
                         {selectedAd.adType === 'video' ? (
-                            <video src={selectedAd.adUrl} className="max-w-full max-h-[85vh] rounded-lg shadow-2xl" controls autoPlay playsInline />
+                            <video src={selectedAd.adUrl} controls autoPlay className="w-full rounded-xl" />
                         ) : (
-                            <img src={selectedAd.adUrl} alt="Ad Full View" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" />
+                            <img src={selectedAd.adUrl} alt="" className="w-full rounded-xl" />
                         )}
+                        <div className="flex items-center justify-between px-4 py-3 mt-2 border rounded-xl bg-surface border-line">
+                            <span className="font-mono text-[13px] font-semibold text-fg">{money(selectedAd.adPrice)}</span>
+                            <span className="font-mono text-[12px] text-fg-3">
+                                {impressionsOf(selectedAd).toLocaleString('en-IN')} impressions
+                            </span>
+                        </div>
                     </div>
                 </div>
             )}
