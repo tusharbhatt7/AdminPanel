@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     UserPlus, Search, ShieldCheck, Shield, Eye, MoreHorizontal,
-    KeyRound, UserX, UserCheck, Trash2, X, Loader2, AlertCircle,
+    KeyRound, UserX, UserCheck, Trash2, X, Loader2, AlertCircle, Send,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../lib/useAuth';
 import {
     fetchUsers, createUser, setUserActive, changeUserRole,
-    removeUserAccess, sendUserPasswordReset,
+    removeUserAccess, sendUserPasswordReset, resendInvite,
 } from '../services/adminUserService';
 import { ROLES, ROLE_LABELS, ROLE_DESCRIPTIONS, canManageUser, assignableRoles } from '../lib/roles';
 import { formatDateTime } from '../lib/rideStatus';
@@ -60,7 +60,12 @@ export default function UserManagement() {
         setCreating(true);
         try {
             const created = await createUser(form, actor);
-            toast.success(`Invited ${created.email} — they will set their own password by email`);
+            toast.success(
+                created.reinstated
+                    ? `${created.email} reinstated — a set-password email is on its way`
+                    : `Invited ${created.email} — they set their own password by email`,
+                { duration: 6000 },
+            );
             setShowInvite(false);
             setForm({ email: '', name: '', role: ROLES.VIEWER });
             await load();
@@ -135,9 +140,15 @@ export default function UserManagement() {
                                             <span className={style.pill}><RoleIcon className="w-3 h-3" /> {ROLE_LABELS[u.role] || u.role}</span>
                                         </td>
                                         <td>
-                                            <span className={`pill ${u.isActive === false ? 'pill-danger' : 'pill-ok'}`}>
-                                                {u.isActive === false ? 'deactivated' : 'active'}
-                                            </span>
+                                            {u.removed ? (
+                                                <span className="pill pill-neutral">removed</span>
+                                            ) : u.isActive === false ? (
+                                                <span className="pill pill-danger">deactivated</span>
+                                            ) : !u.lastLoginAt ? (
+                                                <span className="pill pill-warn">invited</span>
+                                            ) : (
+                                                <span className="pill pill-ok">active</span>
+                                            )}
                                         </td>
                                         <td className="text-[12px] whitespace-nowrap text-fg-2">
                                             {u.lastLoginAt ? formatDateTime(u.lastLoginAt) : <span className="text-fg-3">never</span>}
@@ -172,6 +183,17 @@ export default function UserManagement() {
                                                                 <Shield className="w-3.5 h-3.5" /> Make {ROLE_LABELS[r]}
                                                             </button>
                                                         ))}
+                                                        {!u.lastLoginAt && !u.removed && (
+                                                            <button
+                                                                onClick={() => act(u.uid, async () => {
+                                                                    await resendInvite(u, actor);
+                                                                    toast.success(`Invitation re-sent to ${u.email}`);
+                                                                })}
+                                                                className="flex items-center w-full gap-2 px-3 py-2 text-[13px] border-t text-fg-2 border-line hover:bg-raised hover:text-fg"
+                                                            >
+                                                                <Send className="w-3.5 h-3.5" /> Resend invitation
+                                                            </button>
+                                                        )}
                                                         <button
                                                             onClick={() => act(u.uid, async () => {
                                                                 await sendUserPasswordReset(u, actor);
@@ -194,7 +216,7 @@ export default function UserManagement() {
                                                         </button>
                                                         <button
                                                             onClick={() => {
-                                                                if (!window.confirm(`Remove panel access for ${u.email}? They will not be able to sign in.`)) return;
+                                                                if (!window.confirm(`Remove panel access for ${u.email}? They will not be able to sign in. You can add them again later with the same email.`)) return;
                                                                 act(u.uid, async () => {
                                                                     await removeUserAccess(u, actor);
                                                                     toast.success('Access removed');
@@ -219,9 +241,11 @@ export default function UserManagement() {
             <div className="flex items-start gap-2 px-3 py-2.5 text-[12px] border rounded-lg bg-surface border-line text-fg-2">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-fg-3" />
                 <span>
-                    Removing access deletes the role record, which is what sign-in checks — the account can no longer
-                    get in. The dormant Firebase Auth record itself can only be erased from the Firebase console or by a
-                    Cloud Function, which a browser is not permitted to do.
+                    Removing access revokes it immediately and ejects any open session. The record is kept rather than
+                    deleted, so adding the same email again simply reinstates the person. Erasing the underlying
+                    Firebase Auth account is a separate step in the Firebase console — a browser cannot delete another
+                    account. Invitation emails come from <span className="font-mono text-[11px]">noreply@firstcabs-5ef3e.firebaseapp.com</span>;
+                    tell new users to check spam, and use <strong>Resend invitation</strong> if it never arrives.
                 </span>
             </div>
 
@@ -248,6 +272,10 @@ export default function UserManagement() {
                                 <input id="nu-email" type="email" required className="field" value={form.email}
                                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                                     placeholder="person@firstcabs.com" />
+                                <p className="mt-1.5 text-[11px] leading-snug text-fg-3">
+                                    Must be a real mailbox. A mistyped address is accepted without any error and the
+                                    invitation simply never arrives.
+                                </p>
                             </div>
                             <div>
                                 <label htmlFor="nu-name" className="field-label">Name (optional)</label>

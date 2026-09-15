@@ -1,8 +1,8 @@
 import { initializeApp, deleteApp, getApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import {
-    collection, doc, getDocs, setDoc, updateDoc, deleteDoc,
-    query, orderBy, serverTimestamp,
+    collection, doc, getDocs, setDoc, updateDoc,
+    query, orderBy, where, limit, serverTimestamp,
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, auth, firebaseConfig } from '../firebase';
@@ -34,6 +34,13 @@ const throwawayPassword = () => {
     const bytes = new Uint8Array(24);
     crypto.getRandomValues(bytes);
     return `Aa1!${btoa(String.fromCharCode(...bytes)).replace(/[^a-zA-Z0-9]/g, '')}`;
+};
+
+/** The role record for an address, active or previously removed. */
+const findByEmail = async (email) => {
+    const snap = await getDocs(query(collection(db, USERS), where('email', '==', email), limit(1)));
+    const d = snap.docs[0];
+    return d ? { uid: d.id, ...d.data() } : null;
 };
 
 export const fetchUsers = async () => {
@@ -82,6 +89,36 @@ export const createUser = async ({ email: rawEmail, name, role }, actor) => {
     const viaFunction = await inviteViaFunction({ email, name, role });
     if (viaFunction) return { ...viaFunction, oneEmail: true };
 
+    // Someone removed earlier still has a Firebase Auth account — only their
+    // role record was revoked. Reinstate that record rather than trying to
+    // create an account that already exists, which is what used to fail with
+    // "email already in use" for an address the admin had just removed.
+    const existing = await findByEmail(email);
+    if (existing) {
+        if (existing.isActive !== false) {
+            throw new AuthError('email-in-use', 'That user already has access.');
+        }
+        await updateDoc(doc(db, USERS, existing.uid), {
+            role,
+            name: (name || '').trim() || existing.name || email.split('@')[0],
+            isActive: true,
+            removed: false,
+            reinstatedAt: serverTimestamp(),
+            reinstatedBy: actor.uid,
+        });
+        await sendPasswordResetEmail(auth, email);
+        await recordAudit({
+            actor, action: AUDIT_ACTIONS.USER_REACTIVATED, targetType: 'user',
+            targetId: existing.uid, targetLabel: email,
+            metadata: { role, previousRole: existing.role, reinstated: true },
+        });
+        await recordAudit({
+            actor, action: AUDIT_ACTIONS.PASSWORD_RESET_SENT, targetType: 'user',
+            targetId: existing.uid, targetLabel: email, metadata: { reason: 'reinstated' },
+        });
+        return { uid: existing.uid, email, role, reinstated: true };
+    }
+
     // Secondary app: creating on the primary would replace the admin's session.
     const secondary = initializeApp(firebaseConfig, `admin-create-${Date.now()}`);
     let newUid;
@@ -97,7 +134,15 @@ export const createUser = async ({ email: rawEmail, name, role }, actor) => {
             status: 'failure', metadata: { reason: error.code || 'unknown' },
         });
         if (error.code === 'auth/email-already-in-use') {
-            throw new AuthError('email-in-use', 'An account already exists for that email.');
+            // No role record exists, yet Firebase Auth knows the address. This is
+            // an account removed before soft-delete existed. A browser cannot look
+            // up or delete another account, so say exactly what to do.
+            throw new AuthError(
+                'orphaned-account',
+                'A Firebase Auth account already exists for this email but has no panel access. '
+                + 'Delete it under Authentication \u2192 Users in the Firebase console, then add the user again. '
+                + '(Deploying the sendInvite function removes this step.)',
+            );
         }
         throw new AuthError('create-failed', 'Could not create the account.');
     }
@@ -172,16 +217,42 @@ export const changeUserRole = async (targetUser, nextRole, actor) => {
     return true;
 };
 
-/** Removes panel access. Login checks for an active role record, so this revokes it. */
+/**
+ * Removes panel access. Sign-in requires an active role record, so this revokes
+ * access immediately and ejects any open session.
+ *
+ * The record is kept rather than deleted. Deleting it stranded the Firebase Auth
+ * account with nothing pointing at it, and re-adding the same address then failed
+ * with "email already in use" for a user the admin had just removed. Keeping the
+ * record means re-adding simply reinstates it.
+ */
 export const removeUserAccess = async (targetUser, actor) => {
     if (!canManageUser(actor.role, actor.uid, targetUser)) {
         throw new AuthError('forbidden', 'You cannot remove this user.');
     }
-    await deleteDoc(doc(db, USERS, targetUser.uid));
+    await updateDoc(doc(db, USERS, targetUser.uid), {
+        isActive: false,
+        removed: true,
+        removedAt: serverTimestamp(),
+        removedBy: actor.uid,
+    });
     await recordAudit({
         actor, action: AUDIT_ACTIONS.USER_DEACTIVATED, targetType: 'user',
         targetId: targetUser.uid, targetLabel: targetUser.email,
-        metadata: { removed: true, role: targetUser.role, note: 'role record deleted; auth record remains dormant' },
+        metadata: { removed: true, role: targetUser.role },
+    });
+    return true;
+};
+
+/** Re-sends the set-password email to someone who never received or used it. */
+export const resendInvite = async (targetUser, actor) => {
+    if (!canManageUser(actor.role, actor.uid, targetUser)) {
+        throw new AuthError('forbidden', 'You cannot re-invite this user.');
+    }
+    await sendPasswordResetEmail(auth, targetUser.email);
+    await recordAudit({
+        actor, action: AUDIT_ACTIONS.PASSWORD_RESET_SENT, targetType: 'user',
+        targetId: targetUser.uid, targetLabel: targetUser.email, metadata: { reason: 'resent_invitation' },
     });
     return true;
 };
