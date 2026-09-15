@@ -1,10 +1,29 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, MapPin, Wallet, Mail, Phone, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fetchCustomers, updateCustomerDetails } from '../services/customerService';
 import CustomerDetailDrawer from '../components/CustomerDetailDrawer';
+import PresetBanner from '../components/PresetBanner';
+import { toDate } from '../lib/rideStatus';
+
+// Preset the dashboard's "New Customers" card links into.
+const buildCustomerPresets = (days) => ({
+    new: {
+        label: 'New customers',
+        description: `Customers who signed up in the last ${days} days.`,
+        match: (c) => {
+            const created = toDate(c.createdAt);
+            return !!created && created.getTime() >= Date.now() - days * 86400_000;
+        },
+    },
+});
 
 export default function CustomerManagement() {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const presetDays = Number(searchParams.get('days')) || 30;
+    const activePreset = buildCustomerPresets(presetDays)[searchParams.get('preset')] || null;
+
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -57,9 +76,13 @@ export default function CustomerManagement() {
         const cEmail = customer.email || "";
 
         const searchLower = search.toLowerCase();
-        return cName.toLowerCase().includes(searchLower) ||
+        const matchesSearch = cName.toLowerCase().includes(searchLower) ||
             String(cPhone).includes(searchLower) ||
             cEmail.toLowerCase().includes(searchLower);
+
+        const matchesPreset = activePreset ? activePreset.match(customer) : true;
+
+        return matchesSearch && matchesPreset;
     });
 
     const formatTimestamp = (timestamp) => {
@@ -83,6 +106,14 @@ export default function CustomerManagement() {
 
     return (
         <div className="flex flex-col h-full space-y-4 sm:space-y-6">
+            {activePreset && (
+                <PresetBanner
+                    label={activePreset.label}
+                    description={activePreset.description}
+                    count={filteredCustomers.length}
+                    onClear={() => setSearchParams({}, { replace: true })}
+                />
+            )}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Customer Management</h1>

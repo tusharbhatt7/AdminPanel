@@ -1,8 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, Car, ShieldAlert, BarChart3, Settings, MonitorPlay, X } from 'lucide-react';
+import { LayoutDashboard, Route as RouteIcon, Users, Car, ShieldAlert, BarChart3, Settings, MonitorPlay, X } from 'lucide-react';
 
 const navItems = [
+    { path: '/dashboard', name: 'Dashboard', icon: LayoutDashboard },
+    { path: '/rides', name: 'Ride Management', icon: RouteIcon },
     { path: '/drivers', name: 'Driver Management', icon: Car },
     { path: '/customers', name: 'Customer Management', icon: Users },
     { path: '/safety', name: 'Safety & Compliance', icon: ShieldAlert },

@@ -6,6 +6,10 @@ import TopNav from './TopNav';
 // Helper function to determine the title based on the path
 const getTitleFromPath = (pathname) => {
     switch (pathname) {
+        case '/dashboard':
+            return 'Dashboard';
+        case '/rides':
+            return 'Ride Management';
         case '/drivers':
             return 'Driver Management';
         case '/customers':

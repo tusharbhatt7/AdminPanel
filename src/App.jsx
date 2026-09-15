@@ -9,6 +9,8 @@ import Layout from './components/Layout';
 
 // Pages
 import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import RideManagement from './pages/RideManagement';
 import DriverManagement from './pages/DriverManagement';
 import CustomerManagement from './pages/CustomerManagement';
 import SafetyCompliance from './pages/SafetyCompliance';
@@ -33,11 +35,11 @@ const PrivateRoute = ({ children, currentUser, loading }) => {
   return children;
 };
 
-// Public Route (redirect to drivers if already logged in)
+// Public Route (redirect to the dashboard if already logged in)
 const PublicRoute = ({ children, currentUser, loading }) => {
   if (loading) return null;
   if (currentUser) {
-    return <Navigate to="/drivers" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
   return children;
 };
@@ -107,7 +109,9 @@ function App() {
             <Layout />
           </PrivateRoute>
         }>
-          <Route index element={<Navigate to="/drivers" replace />} />
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="rides" element={<RideManagement />} />
           <Route path="drivers" element={<DriverManagement />} />
           <Route path="customers" element={<CustomerManagement />} />
           <Route path="safety" element={<SafetyCompliance />} />

@@ -1,13 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { fetchDrivers, updateDriverApproval, updateDriverDetails } from '../services/driverService';
 import { Search, Filter, ShieldCheck, ShieldAlert, AlertCircle, RefreshCw } from 'lucide-react';
 import DriverDetailDrawer from '../components/DriverDetailDrawer';
+import PresetBanner from '../components/PresetBanner';
+import { toDate } from '../lib/rideStatus';
+
+// Presets the dashboard cards link into. Kept here rather than as extra dropdown
+// filters so the page's own controls stay as they were.
+const buildDriverPresets = (days) => ({
+    online: {
+        label: 'Active drivers',
+        description: 'Drivers currently online and reachable.',
+        match: (d) => d.isOnline === true,
+    },
+    new: {
+        label: 'New drivers',
+        description: `Drivers who joined in the last ${days} days.`,
+        match: (d) => {
+            const created = toDate(d.createdAt);
+            return !!created && created.getTime() >= Date.now() - days * 86400_000;
+        },
+    },
+});
 
 export default function DriverManagement() {
     const location = useLocation();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const presetDays = Number(searchParams.get('days')) || 30;
+    const presetKey = searchParams.get('preset');
+    const activePreset = buildDriverPresets(presetDays)[presetKey] || null;
 
     const [drivers, setDrivers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -151,7 +176,9 @@ export default function DriverManagement() {
             ? true
             : (driver.vehicleType || 'Unassigned').toLowerCase() === filterVehicleType.toLowerCase();
 
-        return matchesSearch && matchesStatus && matchesVehicleType;
+        const matchesPreset = activePreset ? activePreset.match(driver) : true;
+
+        return matchesSearch && matchesStatus && matchesVehicleType && matchesPreset;
     }).sort((a, b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
@@ -160,6 +187,14 @@ export default function DriverManagement() {
 
     return (
         <div className="flex flex-col h-full space-y-4 sm:space-y-6">
+            {activePreset && (
+                <PresetBanner
+                    label={activePreset.label}
+                    description={activePreset.description}
+                    count={filteredDrivers.length}
+                    onClear={() => setSearchParams({}, { replace: true })}
+                />
+            )}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Driver Management</h1>
