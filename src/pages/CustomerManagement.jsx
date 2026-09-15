@@ -6,6 +6,8 @@ import { fetchCustomers, updateCustomerDetails } from '../services/customerServi
 import CustomerDetailDrawer from '../components/CustomerDetailDrawer';
 import PresetBanner from '../components/PresetBanner';
 import { toDate } from '../lib/rideStatus';
+import { useAuth } from '../lib/useAuth';
+import { recordAudit, AUDIT_ACTIONS } from '../services/auditService';
 
 // Preset the dashboard's "New Customers" card links into.
 const buildCustomerPresets = (days) => ({
@@ -20,6 +22,7 @@ const buildCustomerPresets = (days) => ({
 });
 
 export default function CustomerManagement() {
+    const { actor } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     const presetDays = Number(searchParams.get('days')) || 30;
     const activePreset = buildCustomerPresets(presetDays)[searchParams.get('preset')] || null;
@@ -60,6 +63,10 @@ export default function CustomerManagement() {
         try {
             await updateCustomerDetails(updatedCustomer.id, updatedCustomer);
             setCustomers(customers.map(c => c.id === updatedCustomer.id ? updatedCustomer : c));
+            await recordAudit({
+                actor, action: AUDIT_ACTIONS.CUSTOMER_UPDATED, targetType: 'customer',
+                targetId: updatedCustomer.id, targetLabel: updatedCustomer.name || updatedCustomer.id,
+            });
             toast.success('Customer details updated successfully');
             setIsDrawerOpen(false);
         } catch (error) {

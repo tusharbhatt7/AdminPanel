@@ -3,8 +3,9 @@ import { Search, Bell, ChevronDown, AlertCircle, Menu, Sun, Moon, Calendar } fro
 import { useNavigate } from 'react-router-dom';
 import { getTheme, applyTheme } from '../lib/theme';
 import { PERIODS } from '../lib/periods';
+import { ROLE_LABELS } from '../lib/roles';
 
-export default function TopNav({ toggleSidebar, currentUser, pendingDrivers = [], period, onPeriodChange }) {
+export default function TopNav({ toggleSidebar, currentUser, profile, role, pendingDrivers = [], period, onPeriodChange }) {
     const [showNotifications, setShowNotifications] = useState(false);
     const [theme, setThemeState] = useState(getTheme);
     const notificationRef = useRef(null);
@@ -134,7 +135,14 @@ export default function TopNav({ toggleSidebar, currentUser, pendingDrivers = []
                     <div className="flex items-center justify-center w-8 h-8 text-[11px] font-bold rounded-full bg-brand-soft text-brand-strong shrink-0">
                         {currentUser?.email ? currentUser.email.slice(0, 2).toUpperCase() : 'AD'}
                     </div>
-                    <span className="hidden text-[13px] font-medium text-fg sm:inline">Admin</span>
+                    <span className="hidden sm:block">
+                        <span className="block text-[13px] font-medium leading-tight text-fg">
+                            {profile?.name || currentUser?.email?.split('@')[0] || 'Admin'}
+                        </span>
+                        <span className="block font-mono text-[10px] leading-tight text-fg-3">
+                            {ROLE_LABELS[role] || 'no role'}
+                        </span>
+                    </span>
                     <ChevronDown className="hidden w-3.5 h-3.5 text-fg-3 sm:inline" />
                 </div>
             </div>

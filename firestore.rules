@@ -27,6 +27,36 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // ── Panel roles (admin_users) ─────────────────────────────────────────────
+    // Roles would normally live in custom auth claims, but setting those needs
+    // the Admin SDK. They live in admin_users/{uid} instead and are enforced
+    // here, which still runs server-side and is not bypassable from a browser.
+
+    function panelDoc() {
+      return get(/databases/$(database)/documents/admin_users/$(request.auth.uid));
+    }
+
+    function hasPanelDoc() {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/admin_users/$(request.auth.uid));
+    }
+
+    function panelRoleIs(role) {
+      return hasPanelDoc()
+        && panelDoc().data.isActive == true
+        && panelDoc().data.role == role;
+    }
+
+    // The original email allowlist above still counts as a superuser. It is the
+    // bootstrap path: without it no first role record could ever be written.
+    function isSuperuser() {
+      return isAdmin() || panelRoleIs('superadmin');
+    }
+
+    function isUserManager() {
+      return isSuperuser() || panelRoleIs('admin');
+    }
+
     // ── Sequential dispatch helpers (ride_requests) ───────────────────────────
 
     function isCustomer(ride) {
@@ -634,10 +664,76 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ── PANEL USERS & ROLES ───────────────────────────────────────────────────
+
+    match /admin_users/{userId} {
+      // Everyone signed in may read their own record — the app needs it to know
+      // which role it is rendering for. Reading anyone else needs user rights.
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isUserManager());
+
+      // Only a superuser may mint another superuser.
+      allow create: if isUserManager()
+        && (request.resource.data.role != 'superadmin' || isSuperuser());
+
+      allow update: if
+        // Your own record: the login stamp and nothing else. This is the rule
+        // that makes self-promotion impossible — role and isActive are not in
+        // the allowed key set, so you cannot raise your own privileges.
+        (request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLoginAt']))
+        ||
+        // Someone else's record: never a superuser's unless you are one, and
+        // you cannot promote anyone to superuser unless you are one.
+        (isUserManager()
+          && request.auth.uid != userId
+          && (resource.data.role != 'superadmin' || isSuperuser())
+          && (request.resource.data.role != 'superadmin' || isSuperuser()));
+
+      allow delete: if isUserManager()
+        && request.auth.uid != userId
+        && (resource.data.role != 'superadmin' || isSuperuser());
+    }
+
+    // ── AUDIT LOG ─────────────────────────────────────────────────────────────
+
+    match /audit_logs/{logId} {
+      allow read: if isUserManager();
+
+      allow create: if
+        // A signed-in writer must stamp their own uid. Forging another actor is
+        // rejected, so an entry naming someone else cannot be planted.
+        (isAuthenticated()
+          && request.resource.data.actorUid == request.auth.uid
+          && request.resource.data.action is string)
+        ||
+        // The one unauthenticated path: a failed sign-in, which by definition
+        // has no session yet. Pinned to that single action and shape. The
+        // trade-off is that it can be written by anyone; moving it into a Cloud
+        // Function is the way to close that.
+        (request.auth == null
+          && request.resource.data.action == 'auth.login_failed'
+          && request.resource.data.actorUid == null
+          && request.resource.data.status == 'failure');
+
+      // Append-only. No edits and no deletions, for anyone — including a
+      // superuser — so the trail cannot be rewritten after the fact.
+      allow update, delete: if false;
+    }
+
     // ── Admin website: any other collection ───────────────────────────────────
+    //
+    // Read-only on purpose. Firestore grants access when ANY matching rule
+    // allows it, so while this wildcard granted write it also matched
+    // audit_logs and silently overrode that collection's "allow update,
+    // delete: if false" — making the audit trail editable by any admin. Every
+    // collection this project actually uses has an explicit block above, so
+    // dropping write here costs nothing and is what makes the log immutable.
+    //
+    // A genuinely new collection that an admin must write to needs its own
+    // block above; it will not inherit write access from here.
 
     match /{document=**} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin();
     }
   }
 }

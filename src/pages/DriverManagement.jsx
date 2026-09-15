@@ -6,6 +6,8 @@ import { Search, Filter, ShieldCheck, ShieldAlert, AlertCircle, RefreshCw } from
 import DriverDetailDrawer from '../components/DriverDetailDrawer';
 import PresetBanner from '../components/PresetBanner';
 import { toDate } from '../lib/rideStatus';
+import { useAuth } from '../lib/useAuth';
+import { recordAudit, AUDIT_ACTIONS } from '../services/auditService';
 
 // Presets the dashboard cards link into. Kept here rather than as extra dropdown
 // filters so the page's own controls stay as they were.
@@ -26,6 +28,7 @@ const buildDriverPresets = (days) => ({
 });
 
 export default function DriverManagement() {
+    const { actor } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -97,6 +100,10 @@ export default function DriverManagement() {
         try {
             await updateDriverDetails(updatedDriver.id, updatedDriver);
             setDrivers(drivers.map(d => d.id === updatedDriver.id ? updatedDriver : d));
+            await recordAudit({
+                actor, action: AUDIT_ACTIONS.DRIVER_UPDATED, targetType: 'driver',
+                targetId: updatedDriver.id, targetLabel: updatedDriver.name || updatedDriver.id,
+            });
             toast.success('Driver details updated successfully');
             setIsDrawerOpen(false);
         } catch (error) {
@@ -148,10 +155,20 @@ export default function DriverManagement() {
 
             // Call Firebase (We'll use updateDriverDetails instead of updateDriverApproval since we are updating multiple fields now)
             await updateDriverDetails(selectedDriver.id, updatedData);
+            await recordAudit({
+                actor, action: AUDIT_ACTIONS.DRIVER_APPROVAL_CHANGED, targetType: 'driver',
+                targetId: selectedDriver.id, targetLabel: selectedDriver.name || selectedDriver.id,
+                metadata: { from: !newStatus, to: newStatus, status: updatedData.status },
+            });
             toast.success(`Driver successfully ${newStatus ? 'approved' : 'de-approved'}`);
 
         } catch (error) {
             console.error("Failed to toggle driver status:", error);
+            await recordAudit({
+                actor, action: AUDIT_ACTIONS.DRIVER_APPROVAL_CHANGED, targetType: 'driver',
+                targetId: selectedDriver.id, targetLabel: selectedDriver.name || selectedDriver.id,
+                status: 'failure', metadata: { attempted: newStatus, reason: error.code || 'unknown' },
+            });
             // Revert on error using the complete original state
             setDrivers(drivers.map(d => d.id === originalDriverState.id ? originalDriverState : d));
             toast.error('Failed to update status. Please check your permissions.');

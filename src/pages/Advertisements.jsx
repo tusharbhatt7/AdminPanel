@@ -7,6 +7,8 @@ import {
     MonitorPlay, Eye, IndianRupee, CircleCheck, AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../lib/useAuth';
+import { recordAudit, AUDIT_ACTIONS } from '../services/auditService';
 
 const money = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
@@ -17,6 +19,7 @@ const impressionsOf = (ad) => Number(ad.impressions || 0) + Number(ad[STRAY_KEY]
 const hasStrayField = (ad) => Object.prototype.hasOwnProperty.call(ad, STRAY_KEY);
 
 export default function Advertisements() {
+    const { actor } = useAuth();
     const [ads, setAds] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -91,6 +94,11 @@ export default function Advertisements() {
                         impressions: 0
                     });
 
+                    await recordAudit({
+                        actor, action: AUDIT_ACTIONS.AD_CREATED, targetType: 'advertisement',
+                        targetId: newAdId, targetLabel: newAdId,
+                        metadata: { adType: fileType, adPrice: Number(adPrice), fileName: file.name },
+                    });
                     toast.success("Advertisement uploaded successfully");
                     setShowUploadModal(false);
                     setFile(null);
@@ -122,6 +130,11 @@ export default function Advertisements() {
                 console.warn("Could not delete file from storage. It might have been already deleted or the URL is invalid.", storageError);
             }
 
+            await recordAudit({
+                actor, action: AUDIT_ACTIONS.AD_DELETED, targetType: 'advertisement',
+                targetId: ad.id, targetLabel: ad.adId || ad.id,
+                metadata: { adType: ad.adType, adPrice: ad.adPrice },
+            });
             toast.success("Advertisement deleted successfully");
             fetchAds();
         } catch (error) {

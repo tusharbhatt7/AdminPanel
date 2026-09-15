@@ -1,31 +1,47 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase';
 import toast from 'react-hot-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { login, requestPasswordReset, lockoutState, MAX_ATTEMPTS } from '../services/authService';
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [mode, setMode] = useState('signin');  // 'signin' | 'reset'
     const navigate = useNavigate();
+
+    const lock = lockoutState(email);
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        if (!email || !password) {
-            toast.error('Please enter email and password');
-            return;
-        }
-
+        setError(null);
         setLoading(true);
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            toast.success('Login successful');
+            await login(email, password);
+            toast.success('Signed in');
             navigate('/dashboard');
-        } catch (error) {
-            console.error(error);
-            toast.error('Invalid credentials or access denied');
+        } catch (err) {
+            // One message for a wrong email and a wrong password alike, so the
+            // form cannot be used to discover which addresses are registered.
+            setError(err.message);
+            setPassword('');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleReset = async (e) => {
+        e.preventDefault();
+        setError(null);
+        setLoading(true);
+        try {
+            await requestPasswordReset(email);
+            toast.success('If that address has an account, a reset link is on its way');
+            setMode('signin');
+        } catch (err) {
+            setError(err.message);
         } finally {
             setLoading(false);
         }
@@ -45,47 +61,73 @@ export default function Login() {
                 </div>
 
                 <div className="p-6 panel">
-                    <h1 className="text-base font-semibold text-fg">Sign in</h1>
+                    <h1 className="text-base font-semibold text-fg">
+                        {mode === 'signin' ? 'Sign in' : 'Reset your password'}
+                    </h1>
                     <p className="mt-1 mb-6 text-[13px] text-fg-3">
-                        Authorised operations staff only.
+                        {mode === 'signin'
+                            ? 'Authorised staff only. Every sign-in is recorded.'
+                            : 'We will email you a link to choose a new password.'}
                     </p>
 
-                    <form onSubmit={handleLogin} className="flex flex-col gap-4">
+                    {error && (
+                        <div className="flex items-start gap-2 px-3 py-2.5 mb-4 text-[13px] border rounded-lg bg-danger-soft border-danger/30 text-fg-2">
+                            <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0 text-danger" />
+                            <span>{error}</span>
+                        </div>
+                    )}
+
+                    {mode === 'signin' && lock.remaining < MAX_ATTEMPTS && lock.remaining > 0 && (
+                        <p className="mb-4 -mt-2 text-[12px] text-warn">
+                            {lock.remaining} attempt{lock.remaining === 1 ? '' : 's'} left before this address is locked out.
+                        </p>
+                    )}
+
+                    <form onSubmit={mode === 'signin' ? handleLogin : handleReset} className="flex flex-col gap-4">
                         <div>
                             <label htmlFor="login-email" className="field-label">Email address</label>
                             <input
-                                id="login-email"
-                                type="email"
-                                className="field"
-                                placeholder="admin@firstcabs.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="login-password" className="field-label">Password</label>
-                            <input
-                                id="login-password"
-                                type="password"
-                                className="field"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
+                                id="login-email" type="email" autoComplete="username" className="field"
+                                placeholder="you@firstcabs.com" value={email}
+                                onChange={(e) => setEmail(e.target.value)} required
                             />
                         </div>
 
-                        <button type="submit" disabled={loading} className="w-full mt-1 btn btn-primary">
+                        {mode === 'signin' && (
+                            <div>
+                                <label htmlFor="login-password" className="field-label">Password</label>
+                                <input
+                                    id="login-password" type="password" autoComplete="current-password" className="field"
+                                    placeholder="••••••••" value={password}
+                                    onChange={(e) => setPassword(e.target.value)} required
+                                />
+                            </div>
+                        )}
+
+                        <button type="submit" disabled={loading || (mode === 'signin' && lock.locked)} className="w-full mt-1 btn btn-primary">
                             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                            {loading ? 'Authenticating' : 'Sign in'}
+                            {loading
+                                ? (mode === 'signin' ? 'Signing in' : 'Sending')
+                                : (mode === 'signin' ? 'Sign in' : 'Send reset link')}
                         </button>
                     </form>
+
+                    <div className="pt-4 mt-4 border-t border-line">
+                        {mode === 'signin' ? (
+                            <button onClick={() => { setMode('reset'); setError(null); }}
+                                className="text-[12px] font-medium text-link hover:underline">
+                                Forgot your password?
+                            </button>
+                        ) : (
+                            <button onClick={() => { setMode('signin'); setError(null); }}
+                                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-link hover:underline">
+                                <ArrowLeft className="w-3 h-3" /> Back to sign in
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                <p className="mt-4 font-mono text-[10px] text-center text-fg-3">
-                    firstcabs-5ef3e
-                </p>
+                <p className="mt-4 font-mono text-[10px] text-center text-fg-3">firstcabs-5ef3e</p>
             </div>
         </div>
     );

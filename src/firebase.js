@@ -3,8 +3,9 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// TODO: Replace with Real Firebase Config provided by user.
-const firebaseConfig = {
+// Exported so admin user-creation can spin up a short-lived secondary app
+// instance — creating a user on the primary app would sign the admin out.
+export const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
     databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,

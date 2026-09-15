@@ -1,13 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebase';
 import toast from 'react-hot-toast';
 import {
     LayoutDashboard, Route as RouteIcon, Car, Users, CreditCard, MessageSquareWarning,
     Star, BarChart3, TicketPercent, MonitorPlay, Truck, MapPin, Bell, Settings, LogOut, X,
+    UserCog, ScrollText,
 } from 'lucide-react';
+import { logout } from '../services/authService';
+import { PERMISSIONS, ROLE_LABELS } from '../lib/roles';
 
+// `permission: null` means everyone who can reach the panel at all sees it.
 const navItems = [
     { path: '/dashboard', name: 'Dashboard', icon: LayoutDashboard },
     { path: '/rides', name: 'Rides', icon: RouteIcon },
@@ -23,22 +25,28 @@ const navItems = [
     { path: '/zones', name: 'Cities & Zones', icon: MapPin },
     { path: '/notifications', name: 'Notifications', icon: Bell },
     { path: '/settings', name: 'Settings', icon: Settings },
+    { path: '/users', name: 'Users & Roles', icon: UserCog, permission: PERMISSIONS.USERS_READ },
+    { path: '/audit', name: 'Audit Log', icon: ScrollText, permission: PERMISSIONS.AUDIT_READ },
 ];
 
-export default function Sidebar({ isOpen, setIsOpen, currentUser }) {
+export default function Sidebar({ isOpen, setIsOpen, currentUser, profile, role, can, actor }) {
     const closeOnMobile = () => {
         if (window.innerWidth < 1024) setIsOpen(false);
     };
 
     const handleLogout = async () => {
         try {
-            await signOut(auth);
+            await logout(actor);
             toast.success('Logged out successfully');
         } catch (error) {
             toast.error('Failed to log out');
             console.error(error);
         }
     };
+
+    // Hiding a link is courtesy, not security — the route guard and the
+    // Firestore rules are what actually refuse the access.
+    const visibleItems = navItems.filter((item) => !item.permission || (can ? can(item.permission) : false));
 
     return (
         <aside
@@ -73,7 +81,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentUser }) {
 
             {/* Nav */}
             <nav className="flex flex-col flex-1 gap-0.5 px-2 py-3 overflow-y-auto">
-                {navItems.map((item) => {
+                {visibleItems.map((item) => {
                     const Icon = item.icon;
                     return (
                         <NavLink
@@ -100,13 +108,15 @@ export default function Sidebar({ isOpen, setIsOpen, currentUser }) {
                         className="flex items-center justify-center w-8 h-8 text-xs font-bold rounded-full shrink-0"
                         style={{ background: 'var(--c-nav-2)', color: 'var(--c-brand)' }}
                     >
-                        {currentUser?.email ? currentUser.email.charAt(0).toUpperCase() : 'A'}
+                        {(profile?.name || currentUser?.email || 'A').charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
                         <p className="text-[13px] font-semibold leading-tight truncate" style={{ color: 'var(--c-nav-fg)' }}>
-                            {currentUser ? (currentUser.displayName || currentUser.email.split('@')[0]) : 'Admin'}
+                            {profile?.name || currentUser?.email?.split('@')[0] || 'Admin'}
                         </p>
-                        <p className="text-[10px] leading-tight" style={{ color: 'var(--c-nav-fg-3)' }}>Super Admin</p>
+                        <p className="text-[10px] leading-tight" style={{ color: 'var(--c-nav-fg-3)' }}>
+                            {ROLE_LABELS[role] || 'No role'}
+                        </p>
                     </div>
                 </div>
                 <button
