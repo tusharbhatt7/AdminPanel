@@ -264,3 +264,64 @@ export const renderInviteEmail = ({
 
     return { subject, html, text, preheader };
 };
+
+/**
+ * A paste-ready body for Firebase Console > Authentication > Templates.
+ *
+ * Firebase renders this itself, so it only knows its own placeholders:
+ * %LINK%, %EMAIL%, %APP_NAME% and %DISPLAY_NAME%. There is no variable for who
+ * invited the person or what role they were given, which is why this version
+ * cannot say either — that personalisation needs an email provider we control.
+ *
+ * Kept deliberately simple: the console strips <style> blocks and some clients
+ * see the body without the surrounding document, so everything is inline and
+ * table-based, and it still reads correctly if every style is dropped.
+ */
+export const renderFirebaseResetTemplate = () => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${BRAND.canvas};padding:24px 12px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background:${BRAND.surface};border:1px solid ${BRAND.line};border-radius:10px;">
+      <tr>
+        <td style="background:${BRAND.navy};padding:20px 24px;border-radius:10px 10px 0 0;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+            <td style="padding-right:10px;"><div style="width:4px;height:24px;background:${BRAND.amber};border-radius:2px;font-size:0;line-height:0;">&nbsp;</div></td>
+            <td>
+              <div style="color:${BRAND.amber};font-size:18px;font-weight:700;">FirstCabs</div>
+              <div style="color:#7b8aa3;font-size:11px;padding-top:2px;">Ride. Anytime. Anywhere.</div>
+            </td>
+          </tr></table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:28px 24px 8px 24px;">
+          <h1 style="margin:0 0 14px 0;color:${BRAND.ink};font-size:21px;line-height:29px;font-weight:700;">Set your password</h1>
+          <p style="margin:0 0 22px 0;color:${BRAND.ink2};font-size:15px;line-height:24px;">
+            Use the button below to set the password for your <strong style="color:${BRAND.ink};">FirstCabs Admin</strong>
+            account, <strong style="color:${BRAND.ink};">%EMAIL%</strong>.
+          </p>
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px 0;">
+            <tr><td align="center" bgcolor="${BRAND.amber}" style="border-radius:6px;">
+              <a href="%LINK%" target="_blank" style="display:inline-block;padding:13px 30px;color:${BRAND.amberInk};font-size:15px;font-weight:700;text-decoration:none;border-radius:6px;">Set your password</a>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 18px 0;color:${BRAND.ink3};font-size:12px;line-height:19px;">
+            If the button does not work, copy this link into your browser:<br>
+            <a href="%LINK%" style="color:#1d4ed8;word-break:break-all;">%LINK%</a>
+          </p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${BRAND.canvas};border-left:3px solid ${BRAND.line};border-radius:4px;">
+            <tr><td style="padding:13px 15px;color:${BRAND.ink2};font-size:13px;line-height:20px;">
+              The link works once and expires. If you were not expecting this you can ignore this email &mdash; nothing
+              changes until a password is set.
+            </td></tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:22px 24px 26px 24px;">
+          <div style="border-top:1px solid ${BRAND.line};padding-top:16px;color:${BRAND.ink3};font-size:12px;line-height:19px;">
+            Sent to %EMAIL% &middot; &copy; 2026 FirstCabs &middot; Ride. A Better Tomorrow.
+          </div>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>`;
