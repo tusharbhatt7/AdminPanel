@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, User, Phone, Mail, Hash, Wallet, MapPin, Calendar, Activity, CheckCircle2 } from 'lucide-react';
 
-export default function CustomerDetailDrawer({ isOpen, onClose, customer, onSave, isSaving }) {
+export default function CustomerDetailDrawer({ isOpen, onClose, customer, onSave, isSaving , canEdit = true }) {
     const [formData, setFormData] = useState({});
     const [isVisible, setIsVisible] = useState(false);
     const [shouldRender, setShouldRender] = useState(false);
@@ -226,7 +226,7 @@ export default function CustomerDetailDrawer({ isOpen, onClose, customer, onSave
                         <button type="button" onClick={onClose} disabled={isSaving} className="px-4 py-2 sm:px-5 sm:py-2.5 text-sm font-semibold text-fg-2 bg-surface border border-line rounded-lg hover:bg-raised hover:text-fg hover:border-line-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand/25 disabled:opacity-50 transition-all duration-200 active:scale-95">
                             Discard
                         </button>
-                        <button type="submit" form="customer-edit-form" disabled={isSaving} className="group btn btn-primary">
+                        {canEdit && <button type="submit" form="customer-edit-form" disabled={isSaving} className="group btn btn-primary">
                             {isSaving ? (
                                 <>
                                     <div className="w-4 h-4 mr-2 border-2 rounded-full border-line border-t-white animate-spin"></div>
@@ -238,7 +238,7 @@ export default function CustomerDetailDrawer({ isOpen, onClose, customer, onSave
                                     Save Profile
                                 </>
                             )}
-                        </button>
+                        </button>}
                     </div>
                 </div>
 

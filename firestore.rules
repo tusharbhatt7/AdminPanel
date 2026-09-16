@@ -11,26 +11,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Admin panel (website) — add more emails here if needed
-    function isAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.email in [
-          'admin@firstcabs.com',
-          'tushar.bhatt7747@gmail.com'
-        ]
-        || request.auth.token.admin == true
-        || request.auth.token.role == 'admin'
-      );
-    }
-
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
     // ── Panel roles (admin_users) ─────────────────────────────────────────────
-    // Roles would normally live in custom auth claims, but setting those needs
-    // the Admin SDK. They live in admin_users/{uid} instead and are enforced
-    // here, which still runs server-side and is not bypassable from a browser.
+    // Declared before isAdmin() because it depends on them.
 
     function panelDoc() {
       return get(/databases/$(database)/documents/admin_users/$(request.auth.uid));
@@ -47,10 +29,44 @@ service cloud.firestore {
         && panelDoc().data.role == role;
     }
 
-    // The original email allowlist above still counts as a superuser. It is the
-    // bootstrap path: without it no first role record could ever be written.
+    // Anyone with operational rights in the panel.
+    function isPanelStaff() {
+      return panelRoleIs('admin') || panelRoleIs('superadmin');
+    }
+
+    // The original hard-coded allowlist and custom claims, unchanged. Kept as
+    // its own function because it is the bootstrap path — without it no first
+    // role record could ever be written — and because superuser checks below
+    // must NOT widen along with isAdmin().
+    function isLegacyAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email in [
+          'admin@firstcabs.com',
+          'tushar.bhatt7747@gmail.com'
+        ]
+        || request.auth.token.admin == true
+        || request.auth.token.role == 'admin'
+      );
+    }
+
+    // Operational access, used by every collection below. Previously this was
+    // the allowlist alone, which meant an invited admin could read everything
+    // and write nothing — approving or blocking a driver failed with
+    // permission-denied. Active panel staff now qualify.
+    function isAdmin() {
+      return isLegacyAdmin() || isPanelStaff();
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Deliberately built on isLegacyAdmin(), not isAdmin(). If this widened
+    // along with isAdmin(), every plain admin would count as a superuser and
+    // could mint superusers and edit one another — the exact escalation the
+    // admin_users rules exist to prevent.
     function isSuperuser() {
-      return isAdmin() || panelRoleIs('superadmin');
+      return isLegacyAdmin() || panelRoleIs('superadmin');
     }
 
     function isUserManager() {

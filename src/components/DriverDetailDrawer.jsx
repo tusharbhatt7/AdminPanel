@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, User, Mail, Phone, Car, CircleDot, Image as ImageIcon, FileText, ShieldCheck, Clock, CheckCircle2, AlertCircle, Calendar, CreditCard, Activity, Award } from 'lucide-react';
 
-export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, isSaving }) {
+export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, isSaving , canEdit = true }) {
     const [formData, setFormData] = useState({});
     const [activeTab, setActiveTab] = useState('profile');
     const [isVisible, setIsVisible] = useState(false);
@@ -428,7 +428,7 @@ export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, is
                         <button type="button" onClick={onClose} disabled={isSaving} className="px-5 py-2.5 text-sm font-semibold text-fg-2 bg-surface border border-line rounded-lg hover:bg-raised hover:text-fg hover:border-line-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand/25 disabled:opacity-50 transition-all duration-200 active:scale-95">
                             Discard
                         </button>
-                        <button type="submit" form="driver-edit-form" disabled={isSaving} className="group btn btn-primary">
+                        {canEdit && <button type="submit" form="driver-edit-form" disabled={isSaving} className="group btn btn-primary">
                             {isSaving ? (
                                 <>
                                     <div className="w-4 h-4 mr-2 border-2 rounded-full border-line border-t-white animate-spin"></div>
@@ -440,7 +440,7 @@ export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, is
                                     Save Profile
                                 </>
                             )}
-                        </button>
+                        </button>}
                     </div>
                 </div>
 

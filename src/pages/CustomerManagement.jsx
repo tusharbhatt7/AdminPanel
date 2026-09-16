@@ -7,6 +7,7 @@ import CustomerDetailDrawer from '../components/CustomerDetailDrawer';
 import PresetBanner from '../components/PresetBanner';
 import { toDate } from '../lib/rideStatus';
 import { useAuth } from '../lib/useAuth';
+import { PERMISSIONS } from '../lib/roles';
 import { recordAudit, AUDIT_ACTIONS } from '../services/auditService';
 
 // Preset the dashboard's "New Customers" card links into.
@@ -22,7 +23,8 @@ const buildCustomerPresets = (days) => ({
 });
 
 export default function CustomerManagement() {
-    const { actor } = useAuth();
+    const { actor, can } = useAuth();
+    const mayWrite = can(PERMISSIONS.CUSTOMERS_WRITE);
     const [searchParams, setSearchParams] = useSearchParams();
     const presetDays = Number(searchParams.get('days')) || 30;
     const activePreset = buildCustomerPresets(presetDays)[searchParams.get('preset')] || null;
@@ -345,6 +347,7 @@ export default function CustomerManagement() {
             </div>
 
             <CustomerDetailDrawer
+                canEdit={mayWrite}
                 isOpen={isDrawerOpen}
                 onClose={() => setIsDrawerOpen(false)}
                 customer={selectedCustomer}

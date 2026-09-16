@@ -7,6 +7,7 @@ import DriverDetailDrawer from '../components/DriverDetailDrawer';
 import PresetBanner from '../components/PresetBanner';
 import { toDate } from '../lib/rideStatus';
 import { useAuth } from '../lib/useAuth';
+import { PERMISSIONS } from '../lib/roles';
 import { recordAudit, AUDIT_ACTIONS } from '../services/auditService';
 
 // Presets the dashboard cards link into. Kept here rather than as extra dropdown
@@ -28,7 +29,8 @@ const buildDriverPresets = (days) => ({
 });
 
 export default function DriverManagement() {
-    const { actor } = useAuth();
+    const { actor, can } = useAuth();
+    const mayWrite = can(PERMISSIONS.DRIVERS_WRITE);
     const location = useLocation();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -388,6 +390,8 @@ export default function DriverManagement() {
                                             {driver.status === 'Blocked' && !driver.isApproved ? (
                                                 <button
                                                     onClick={(e) => handleToggleClick(e, driver)}
+                                                    disabled={!mayWrite}
+                                                    title={mayWrite ? undefined : 'Your role cannot change driver approval'}
                                                     className="inline-flex items-center px-3 py-1.5 border rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 border-transparent text-brand-fg bg-fg-3 hover:bg-raised focus:ring-brand/25"
                                                 >
                                                     Unblock
@@ -395,6 +399,8 @@ export default function DriverManagement() {
                                             ) : (
                                                 <button
                                                     onClick={(e) => handleToggleClick(e, driver)}
+                                                    disabled={!mayWrite}
+                                                    title={mayWrite ? undefined : 'Your role cannot change driver approval'}
                                                     className={`inline-flex items-center px-3 py-1.5 border rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ${driver.isApproved
                                                         ? 'border-danger/40 text-danger bg-surface hover:bg-danger-soft focus:ring-danger/40'
                                                         : 'border-transparent text-brand-fg bg-primary-600 hover:bg-primary-700 focus:ring-primary-500'
@@ -486,7 +492,7 @@ export default function DriverManagement() {
                                             {driver.isApproved ? 'Approved' : 'Not Approved'}
                                         </span>
                                         {driver.status === 'Blocked' && !driver.isApproved ? (
-                                            <button onClick={(e) => { e.stopPropagation(); handleToggleClick(e, driver); }} className="px-4 py-1.5 bg-fg-3 text-brand-fg text-xs font-semibold rounded-lg ">
+                                            <button onClick={(e) => { e.stopPropagation(); handleToggleClick(e, driver); }} disabled={!mayWrite} title={mayWrite ? undefined : 'Your role cannot change driver approval'} className="px-4 py-1.5 bg-fg-3 text-brand-fg text-xs font-semibold rounded-lg disabled:opacity-40 disabled:pointer-events-none">
                                                 Unblock
                                             </button>
                                         ) : (
@@ -594,6 +600,7 @@ export default function DriverManagement() {
 
             {/* Driver Detail Drawer */}
             <DriverDetailDrawer
+                canEdit={mayWrite}
                 isOpen={isDrawerOpen}
                 onClose={() => setIsDrawerOpen(false)}
                 driver={selectedDriverForDetails}

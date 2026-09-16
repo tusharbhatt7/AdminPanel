@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../lib/useAuth';
+import { PERMISSIONS } from '../lib/roles';
 import { recordAudit, AUDIT_ACTIONS } from '../services/auditService';
 
 const money = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
@@ -19,7 +20,8 @@ const impressionsOf = (ad) => Number(ad.impressions || 0) + Number(ad[STRAY_KEY]
 const hasStrayField = (ad) => Object.prototype.hasOwnProperty.call(ad, STRAY_KEY);
 
 export default function Advertisements() {
-    const { actor } = useAuth();
+    const { actor, can } = useAuth();
+    const mayWrite = can(PERMISSIONS.ADS_WRITE);
     const [ads, setAds] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -172,9 +174,11 @@ export default function Advertisements() {
                         In-app promotional banners and videos served to riders.
                     </p>
                 </div>
-                <button onClick={() => setShowUploadModal(true)} className="btn btn-primary">
-                    <Plus className="w-4 h-4" /> Upload Ad
-                </button>
+                {mayWrite && (
+                    <button onClick={() => setShowUploadModal(true)} className="btn btn-primary">
+                        <Plus className="w-4 h-4" /> Upload Ad
+                    </button>
+                )}
             </div>
 
             {/* KPIs */}
@@ -222,9 +226,11 @@ export default function Advertisements() {
                     <MonitorPlay className="w-8 h-8 mb-3 text-fg-3 opacity-50" />
                     <p className="text-[14px] font-medium text-fg">No advertisements yet</p>
                     <p className="mt-1 mb-4 text-[13px] text-fg-3">Upload a banner or video to start serving ads.</p>
-                    <button onClick={() => setShowUploadModal(true)} className="btn btn-primary">
-                        <Plus className="w-4 h-4" /> Upload Ad
-                    </button>
+                    {mayWrite && (
+                        <button onClick={() => setShowUploadModal(true)} className="btn btn-primary">
+                            <Plus className="w-4 h-4" /> Upload Ad
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -290,12 +296,14 @@ export default function Advertisements() {
                                         )}
                                     </div>
 
-                                    <button
-                                        onClick={() => handleDelete(ad)}
-                                        className="w-full btn btn-danger btn-sm"
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" /> Delete
-                                    </button>
+                                    {mayWrite && (
+                                        <button
+                                            onClick={() => handleDelete(ad)}
+                                            className="w-full btn btn-danger btn-sm"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         );
