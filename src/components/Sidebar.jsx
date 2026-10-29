@@ -4,32 +4,62 @@ import toast from 'react-hot-toast';
 import {
     LayoutDashboard, Route as RouteIcon, Car, Users, CreditCard, MessageSquareWarning,
     Star, BarChart3, TicketPercent, MonitorPlay, Truck, MapPin, Bell, Settings, LogOut, X,
-    UserCog, ScrollText,
+    UserCog, ScrollText, Radio, Wallet,
 } from 'lucide-react';
 import { logout } from '../services/authService';
 import { PERMISSIONS, ROLE_LABELS } from '../lib/roles';
 
-// `permission: null` means everyone who can reach the panel at all sees it.
-const navItems = [
-    { path: '/dashboard', name: 'Dashboard', icon: LayoutDashboard },
-    { path: '/rides', name: 'Rides', icon: RouteIcon },
-    { path: '/drivers', name: 'Drivers', icon: Car },
-    { path: '/customers', name: 'Customers', icon: Users },
-    { path: '/payments', name: 'Payments', icon: CreditCard },
-    { path: '/complaints', name: 'Complaints', icon: MessageSquareWarning },
-    { path: '/reviews', name: 'Reviews', icon: Star },
-    { path: '/analytics', name: 'Analytics', icon: BarChart3 },
-    { path: '/promotions', name: 'Promotions', icon: TicketPercent },
-    { path: '/advertisements', name: 'Advertisements', icon: MonitorPlay },
-    { path: '/fleet', name: 'Fleet Management', icon: Truck },
-    { path: '/zones', name: 'Cities & Zones', icon: MapPin },
-    { path: '/notifications', name: 'Notifications', icon: Bell },
-    { path: '/settings', name: 'Settings', icon: Settings },
-    { path: '/users', name: 'Users & Roles', icon: UserCog, permission: PERMISSIONS.USERS_READ },
-    { path: '/audit', name: 'Audit Log', icon: ScrollText, permission: PERMISSIONS.AUDIT_READ },
+// Grouped, because seventeen flat items is a list to read rather than a place
+// to navigate. `badge` names a worklist counter; a group only renders if the
+// role can see something inside it.
+//
+// The five unbuilt modules sit in their own group at the bottom rather than
+// among the working screens. They are real placeholders for collections that
+// have never been created, and interleaving them taught people that half the
+// navigation does nothing.
+const NAV_GROUPS = [
+    {
+        title: 'Operations',
+        items: [
+            { path: '/dashboard', name: 'Dashboard', icon: LayoutDashboard },
+            { path: '/live', name: 'Active Rides', icon: Radio, permission: PERMISSIONS.RIDES_READ, badge: 'activeRides' },
+            { path: '/rides', name: 'All Rides', icon: RouteIcon },
+            { path: '/drivers', name: 'Drivers', icon: Car, badge: 'pendingDrivers', badgeTone: 'warn' },
+            { path: '/customers', name: 'Customers', icon: Users },
+            { path: '/reviews', name: 'Reviews', icon: Star },
+        ],
+    },
+    {
+        title: 'Money',
+        items: [
+            { path: '/payments', name: 'Payments', icon: CreditCard },
+            { path: '/wallets', name: 'Driver Wallets', icon: Wallet, permission: PERMISSIONS.WALLETS_READ, badge: 'pendingWithdrawals', badgeTone: 'warn' },
+            { path: '/analytics', name: 'Analytics', icon: BarChart3 },
+        ],
+    },
+    {
+        title: 'Administration',
+        items: [
+            { path: '/advertisements', name: 'Advertisements', icon: MonitorPlay },
+            { path: '/settings', name: 'Settings', icon: Settings },
+            { path: '/users', name: 'Users & Roles', icon: UserCog, permission: PERMISSIONS.USERS_READ },
+            { path: '/audit', name: 'Audit Log', icon: ScrollText, permission: PERMISSIONS.AUDIT_READ },
+        ],
+    },
+    {
+        title: 'Not built yet',
+        muted: true,
+        items: [
+            { path: '/complaints', name: 'Complaints', icon: MessageSquareWarning },
+            { path: '/promotions', name: 'Promotions', icon: TicketPercent },
+            { path: '/fleet', name: 'Fleet', icon: Truck },
+            { path: '/zones', name: 'Cities & Zones', icon: MapPin },
+            { path: '/notifications', name: 'Notifications', icon: Bell },
+        ],
+    },
 ];
 
-export default function Sidebar({ isOpen, setIsOpen, currentUser, profile, role, can, actor }) {
+export default function Sidebar({ isOpen, setIsOpen, currentUser, profile, role, can, actor, worklist = {} }) {
     const closeOnMobile = () => {
         if (window.innerWidth < 1024) setIsOpen(false);
     };
@@ -46,7 +76,12 @@ export default function Sidebar({ isOpen, setIsOpen, currentUser, profile, role,
 
     // Hiding a link is courtesy, not security — the route guard and the
     // Firestore rules are what actually refuse the access.
-    const visibleItems = navItems.filter((item) => !item.permission || (can ? can(item.permission) : false));
+    const visibleGroups = NAV_GROUPS
+        .map((group) => ({
+            ...group,
+            items: group.items.filter((item) => !item.permission || (can ? can(item.permission) : false)),
+        }))
+        .filter((group) => group.items.length > 0);
 
     return (
         <aside
@@ -80,25 +115,50 @@ export default function Sidebar({ isOpen, setIsOpen, currentUser, profile, role,
             </div>
 
             {/* Nav */}
-            <nav className="flex flex-col flex-1 gap-0.5 px-2 py-3 overflow-y-auto">
-                {visibleItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                        <NavLink
-                            key={item.path}
-                            to={item.path}
-                            onClick={closeOnMobile}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors duration-100"
-                            style={({ isActive }) => ({
-                                background: isActive ? 'var(--c-brand)' : 'transparent',
-                                color: isActive ? 'var(--c-brand-fg)' : 'var(--c-nav-fg)',
-                            })}
+            <nav className="flex flex-col flex-1 gap-3 px-2 py-3 overflow-y-auto">
+                {visibleGroups.map((group) => (
+                    <div key={group.title} className="flex flex-col gap-0.5">
+                        <p
+                            className="px-3 pb-1 font-mono text-[9px] font-semibold tracking-[0.14em] uppercase"
+                            style={{ color: 'var(--c-nav-fg-3)', opacity: group.muted ? 0.55 : 1 }}
                         >
-                            <Icon className="w-[18px] h-[18px] shrink-0" />
-                            <span className="truncate">{item.name}</span>
-                        </NavLink>
-                    );
-                })}
+                            {group.title}
+                        </p>
+                        {group.items.map((item) => {
+                            const Icon = item.icon;
+                            const count = item.badge ? worklist[item.badge] : null;
+                            return (
+                                <NavLink
+                                    key={item.path}
+                                    to={item.path}
+                                    onClick={closeOnMobile}
+                                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-100"
+                                    style={({ isActive }) => ({
+                                        background: isActive ? 'var(--c-brand)' : 'transparent',
+                                        color: isActive ? 'var(--c-brand-fg)' : 'var(--c-nav-fg)',
+                                        opacity: group.muted ? 0.55 : 1,
+                                    })}
+                                >
+                                    <Icon className="w-[18px] h-[18px] shrink-0" />
+                                    <span className="truncate">{item.name}</span>
+                                    {/* Zero is not shown: an empty queue should
+                                        read as nothing to do, not as a count. */}
+                                    {typeof count === 'number' && count > 0 && (
+                                        <span
+                                            className="ml-auto px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular shrink-0"
+                                            style={{
+                                                background: item.badgeTone === 'warn' ? 'var(--c-warn)' : 'var(--c-info)',
+                                                color: 'var(--c-nav)',
+                                            }}
+                                        >
+                                            {count > 99 ? '99+' : count}
+                                        </span>
+                                    )}
+                                </NavLink>
+                            );
+                        })}
+                    </div>
+                ))}
             </nav>
 
             {/* Account */}

@@ -26,7 +26,7 @@ export const ROLE_LABELS = {
 export const ROLE_DESCRIPTIONS = {
     [ROLES.SUPERADMIN]: 'Full access, including managing other superusers and deleting accounts.',
     [ROLES.ADMIN]: 'Full operational access and can manage regular users. Cannot alter superusers.',
-    [ROLES.VIEWER]: 'Can view and work with rides, drivers and customers. No user or audit access.',
+    [ROLES.VIEWER]: 'Can view and work with rides, drivers and customers, including wallet balances. Cannot move money, and no user or audit access.',
 };
 
 export const PERMISSIONS = {
@@ -37,6 +37,11 @@ export const PERMISSIONS = {
     CUSTOMERS_READ: 'customers.read',
     CUSTOMERS_WRITE: 'customers.write',
     PAYMENTS_READ: 'payments.read',
+    WALLETS_READ: 'wallets.read',
+    // Moving a driver's money. Deliberately not granted to a regular user, and
+    // separate from payments.read: seeing a balance and changing one are not
+    // the same authority.
+    WALLETS_WRITE: 'wallets.write',
     REVIEWS_READ: 'reviews.read',
     ADS_READ: 'ads.read',
     ADS_WRITE: 'ads.write',
@@ -51,10 +56,10 @@ const P = PERMISSIONS;
 
 const OPERATIONAL_READ = [
     P.RIDES_READ, P.DRIVERS_READ, P.CUSTOMERS_READ,
-    P.PAYMENTS_READ, P.REVIEWS_READ, P.ADS_READ,
+    P.PAYMENTS_READ, P.WALLETS_READ, P.REVIEWS_READ, P.ADS_READ,
 ];
 
-const OPERATIONAL_WRITE = [P.DRIVERS_WRITE, P.CUSTOMERS_WRITE, P.ADS_WRITE];
+const OPERATIONAL_WRITE = [P.DRIVERS_WRITE, P.CUSTOMERS_WRITE, P.ADS_WRITE, P.WALLETS_WRITE];
 
 export const ROLE_PERMISSIONS = {
     [ROLES.SUPERADMIN]: [

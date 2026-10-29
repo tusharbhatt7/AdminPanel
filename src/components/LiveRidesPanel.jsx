@@ -9,10 +9,9 @@ const mapsRoute = (r) =>
         : null;
 
 /**
- * Stands in for the mockup's live map. Rendering Delhi streets needs a keyed
- * tile provider; until there is one, the useful half of that panel — which rides
- * are in flight and where they are going — works with no key at all, and each
- * row opens the real coordinates in Google Maps.
+ * The dashboard's at-a-glance list of rides in flight. The full map lives on
+ * the Live Tracking page; this stays a list because it shares a dashboard row
+ * with other cards and a map that size shows less than six legible lines do.
  */
 export default function LiveRidesPanel({ rides, loading = false }) {
     return (
@@ -69,10 +68,6 @@ export default function LiveRidesPanel({ rides, loading = false }) {
                     })}
                 </ul>
             )}
-
-            <p className="mt-auto pt-3 text-[10px] leading-snug text-fg-3">
-                Map view needs a Google Maps or Mapbox key — rows open the real coordinates meanwhile.
-            </p>
         </div>
     );
 }

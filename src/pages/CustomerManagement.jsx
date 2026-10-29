@@ -36,6 +36,31 @@ export default function CustomerManagement() {
     // Drawer State
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
+
+    // ?customer=<id> so a link from a ride or a ledger row opens the person,
+    // not the list.
+    const deepCustomerId = searchParams.get('customer');
+
+    useEffect(() => {
+        if (!deepCustomerId || !customers.length) return;
+        const target = customers.find((c) => c.id === deepCustomerId);
+        if (target) { setSelectedCustomer(target); setIsDrawerOpen(true); }
+    }, [deepCustomerId, customers]);
+
+    // Closing the drawer has to drop the param too. Left in place, the deep-link
+    // effect above would reopen the drawer the next time the list reloads —
+    // after an approval, say — and the record would spring back open on its own.
+    const closeDetailDrawer = () => {
+        setIsDrawerOpen(false);
+        if (searchParams.get('customer')) {
+            setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete('customer');
+                return next;
+            }, { replace: true });
+        }
+    };
+
     const [isSavingDetails, setIsSavingDetails] = useState(false);
 
     useEffect(() => {
@@ -349,7 +374,7 @@ export default function CustomerManagement() {
             <CustomerDetailDrawer
                 canEdit={mayWrite}
                 isOpen={isDrawerOpen}
-                onClose={() => setIsDrawerOpen(false)}
+                onClose={closeDetailDrawer}
                 customer={selectedCustomer}
                 onSave={handleSaveCustomerDetails}
                 isSaving={isSavingDetails}

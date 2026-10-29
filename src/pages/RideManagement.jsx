@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, AlertCircle, ExternalLink, ArrowLeft, Loader2, AlertTriangle } from 'lucide-react';
-import { fetchRidesPage, listenToRides } from '../services/rideService';
+import { fetchRidesPage, listenToRides, fetchRidesForParty, fetchRideById } from '../services/rideService';
 import RideDetailDrawer from '../components/RideDetailDrawer';
 import {
     RIDE_PRESETS, isRidePreset, statusStyle, statusLabel,
@@ -18,8 +18,18 @@ export default function RideManagement() {
     const presetKey = isRidePreset(requested) ? requested : 'all';
     const preset = RIDE_PRESETS[presetKey];
 
+    // Deep links. `ride` opens one ride, `q` seeds the filter, and
+    // `driver`/`user` scope the list to one person's history. Before this,
+    // every one of these was dropped on the floor: the global search navigated
+    // to ?q= and this page only ever read ?status=, so the query vanished and
+    // the user got an unfiltered list.
+    const deepRideId = searchParams.get('ride');
+    const partyField = searchParams.get('driver') ? 'assignedDriverId'
+        : searchParams.get('user') ? 'userId' : null;
+    const partyValue = searchParams.get('driver') ?? searchParams.get('user');
+
     const [feed, setFeed] = useState(EMPTY_FEED);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(() => searchParams.get('q') ?? '');
     const [loadingMore, setLoadingMore] = useState(false);
     const [selectedRide, setSelectedRide] = useState(null);
 
@@ -28,6 +38,24 @@ export default function RideManagement() {
     useEffect(() => {
         let cancelled = false;
         const fail = (error) => setFeed({ ...EMPTY_FEED, status: 'error', error, forPreset: presetKey });
+
+        // One person's history replaces the preset feed — a driver's rides are
+        // not a status preset, and paginating them through the same path would
+        // mean filtering a global page down to one person client-side.
+        if (partyField && partyValue) {
+            (async () => {
+                try {
+                    const rides = await fetchRidesForParty({ field: partyField, value: partyValue });
+                    if (!cancelled) {
+                        setFeed({ status: 'ok', rides, lastDoc: null, hasMore: false, atLimit: false, error: null, forPreset: presetKey });
+                    }
+                } catch (error) {
+                    console.error('Failed to load rides for party:', error);
+                    if (!cancelled) fail(error);
+                }
+            })();
+            return () => { cancelled = true; };
+        }
 
         // Presets an admin watches stream; presets they browse paginate.
         if (preset.live) {
@@ -53,7 +81,34 @@ export default function RideManagement() {
         })();
 
         return () => { cancelled = true; };
-    }, [presetKey, preset.live, preset.statuses]);
+    }, [presetKey, preset.live, preset.statuses, partyField, partyValue]);
+
+    // A deep-linked ride may not be in the loaded page at all — an old ride
+    // reached from a wallet ledger row, say — so it is fetched directly rather
+    // than searched for in whatever happens to be on screen.
+    useEffect(() => {
+        if (!deepRideId) return undefined;
+        let cancelled = false;
+        const inFeed = feed.rides.find((r) => r.id === deepRideId);
+        if (inFeed) { setSelectedRide(inFeed); return undefined; }
+
+        (async () => {
+            const ride = await fetchRideById(deepRideId).catch(() => null);
+            if (!cancelled && ride) setSelectedRide(ride);
+        })();
+        return () => { cancelled = true; };
+    }, [deepRideId, feed.rides]);
+
+    const closeDrawer = useCallback(() => {
+        setSelectedRide(null);
+        if (deepRideId) {
+            setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete('ride');
+                return next;
+            }, { replace: true });
+        }
+    }, [deepRideId, setSearchParams]);
 
     const handleLoadMore = useCallback(async () => {
         setLoadingMore(true);
@@ -97,9 +152,40 @@ export default function RideManagement() {
                 <Link to="/dashboard" className="inline-flex items-center gap-1.5 mb-2 font-mono text-[10px] font-semibold tracking-[0.1em] uppercase text-fg-3 hover:text-brand transition-colors">
                     <ArrowLeft className="w-3 h-3" /> Overview
                 </Link>
-                <h2 className="text-base font-semibold tracking-tight text-fg">{preset.label}</h2>
-                <p className="mt-0.5 text-[13px] text-fg-3">{preset.blurb}</p>
+                <h2 className="text-base font-semibold tracking-tight text-fg">
+                    {partyField ? 'Ride history' : preset.label}
+                </h2>
+                <p className="mt-0.5 text-[13px] text-fg-3">
+                    {partyField
+                        ? `Every ride for one ${partyField === 'userId' ? 'customer' : 'driver'}, newest first.`
+                        : preset.blurb}
+                </p>
             </div>
+
+            {/* A scoped list has to say so, and offer the way out. Otherwise a
+                narrowed view reads as an empty database. */}
+            {partyField && (
+                <div className="flex flex-wrap items-center justify-between gap-2 p-3 border rounded-lg bg-info-soft border-info/40">
+                    <p className="text-[12px] text-fg-2">
+                        Showing rides for {partyField === 'userId' ? 'customer' : 'driver'}
+                        <span className="ml-1 font-mono text-fg">{partyValue?.slice(0, 14)}…</span>
+                    </p>
+                    <div className="flex gap-2">
+                        <Link
+                            to={partyField === 'userId' ? `/customers?customer=${partyValue}` : `/drivers?driver=${partyValue}`}
+                            className="btn btn-default btn-sm"
+                        >
+                            Open profile
+                        </Link>
+                        <button
+                            type="button" className="btn btn-ghost btn-sm"
+                            onClick={() => setSearchParams({}, { replace: true })}
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Preset tabs */}
             <div className="flex gap-1 p-1 overflow-x-auto border rounded-lg bg-surface border-line">
@@ -131,7 +217,18 @@ export default function RideManagement() {
                 <div className="relative w-full sm:max-w-sm">
                     <Search className="absolute w-3.5 h-3.5 -translate-y-1/2 left-3 top-1/2 text-fg-3 pointer-events-none" />
                     <input
-                        type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+                        type="text" value={search}
+                        onChange={(e) => {
+                            const next = e.target.value;
+                            setSearch(next);
+                            // Mirrored into the URL so a filtered view can be
+                            // pasted into chat and open the same screen.
+                            setSearchParams((prev) => {
+                                const params = new URLSearchParams(prev);
+                                if (next.trim()) params.set('q', next); else params.delete('q');
+                                return params;
+                            }, { replace: true });
+                        }}
                         placeholder="Search route, driver, vehicle, ride ID…"
                         className="field pl-8"
                     />
@@ -297,7 +394,7 @@ export default function RideManagement() {
             <RideDetailDrawer
                 ride={selectedRide}
                 isOpen={!!selectedRide}
-                onClose={() => setSelectedRide(null)}
+                onClose={closeDrawer}
             />
         </div>
     );

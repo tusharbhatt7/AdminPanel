@@ -106,3 +106,22 @@ export const formatDateTime = (value) => {
 
 export const formatCurrency = (amount) =>
     typeof amount === 'number' ? `₹${amount.toLocaleString('en-IN')}` : '—';
+
+/**
+ * "09:32 pm" for today, "22 Oct, 09:32 pm" otherwise.
+ *
+ * formatDateTime spells out the year, which is right for a ledger row and
+ * wrong in a dispatch card: "22 Oct 2026, 09:32 pm" overflowed its column and
+ * truncated to "22 Oct 2026, 0…", hiding the only part anyone reads. Dispatch
+ * works in today, so the date earns its space only when it is not today.
+ */
+export const formatCompact = (value) => {
+    const date = toDate(value);
+    if (!date) return '—';
+    const time = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const today = new Date();
+    const sameDay = date.getDate() === today.getDate()
+        && date.getMonth() === today.getMonth()
+        && date.getFullYear() === today.getFullYear();
+    return sameDay ? time : `${date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}, ${time}`;
+};
