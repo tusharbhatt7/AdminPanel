@@ -1,7 +1,8 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
     X, MapPin, Flag, IndianRupee, Car, User, CreditCard,
-    Clock, ExternalLink, AlertTriangle, Hash,
+    Clock, ExternalLink, AlertTriangle, Hash, ArrowUpRight, Route,
 } from 'lucide-react';
 import {
     statusStyle, statusLabel, statusStripe, formatDateTime, formatAge,
@@ -25,11 +26,21 @@ const Row = (props) => {
     );
 };
 
-const Section = ({ title, children }) => (
+const Section = ({ title, children, action = null }) => (
     <div className="p-3 panel">
-        <h4 className="mb-1 eyebrow">{title}</h4>
+        <div className="flex items-center justify-between gap-2 mb-1">
+            <h4 className="eyebrow">{title}</h4>
+            {action}
+        </div>
         <div className="divide-y divide-line/60">{children}</div>
     </div>
+);
+
+/** Header link out to the record a section is about. */
+const ProfileLink = ({ to, label = 'View profile' }) => (
+    <Link to={to} className="flex items-center gap-1 text-[11px] font-medium text-link hover:underline">
+        {label} <ArrowUpRight className="w-3 h-3" />
+    </Link>
 );
 
 const mapsLink = (lat, lng) =>
@@ -113,18 +124,38 @@ export default function RideDetailDrawer({ ride, isOpen, onClose }) {
                         <Row icon={CreditCard} label="Payment status" value={ride.paymentStatus || (ride.paymentCollected ? 'collected' : null)} />
                     </Section>
 
-                    <Section title="Driver">
+                    <Section
+                        title="Driver"
+                        action={ride.assignedDriverId && <ProfileLink to={`/drivers?driver=${ride.assignedDriverId}`} />}
+                    >
                         <Row icon={User} label="Name" value={ride.driverName} />
                         <Row
                             icon={Car} label="Vehicle"
                             value={[ride.vehicleDisplayName, plainOrNull(ride.vehicleNumber)].filter(Boolean).join(' · ') || null}
                         />
                         <Row icon={Hash} label="Driver ID" value={ride.assignedDriverId} mono />
+                        {ride.assignedDriverId && (
+                            <div className="pt-2">
+                                <Link to={`/rides?driver=${ride.assignedDriverId}`} className="btn btn-default btn-sm">
+                                    <Route className="w-3.5 h-3.5" /> Ride history
+                                </Link>
+                            </div>
+                        )}
                     </Section>
 
-                    <Section title="Customer">
+                    <Section
+                        title="Customer"
+                        action={ride.userId && <ProfileLink to={`/customers?customer=${ride.userId}`} />}
+                    >
                         <Row icon={Hash} label="Customer ID" value={ride.userId} mono />
                         <Row icon={User} label="Email" value={ride.userEmail} />
+                        {ride.userId && (
+                            <div className="pt-2">
+                                <Link to={`/rides?user=${ride.userId}`} className="btn btn-default btn-sm">
+                                    <Route className="w-3.5 h-3.5" /> Ride history
+                                </Link>
+                            </div>
+                        )}
                     </Section>
 
                     <Section title="Timeline">

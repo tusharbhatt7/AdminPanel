@@ -3,6 +3,8 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopNav from './TopNav';
 import { listenToPendingDrivers } from '../services/driverService';
+import { listenToWorklist } from '../services/worklistService';
+import CommandPalette from './CommandPalette';
 import { useAuth } from '../lib/useAuth';
 
 export default function Layout() {
@@ -10,12 +12,18 @@ export default function Layout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [pendingDrivers, setPendingDrivers] = useState([]);
     const [period, setPeriod] = useState(30);
+    const [worklist, setWorklist] = useState({});
 
     // Live, so an approval anywhere in the panel clears the badge immediately.
     useEffect(() => listenToPendingDrivers(setPendingDrivers), []);
 
+    // Each counter arrives on its own, so the patch is merged rather than
+    // replaced — otherwise the last listener to fire would wipe the others.
+    useEffect(() => listenToWorklist((patch) => setWorklist((prev) => ({ ...prev, ...patch }))), []);
+
     return (
         <div className="relative flex h-screen overflow-hidden bg-canvas">
+            <CommandPalette />
             {isSidebarOpen && (
                 <div
                     className="fixed inset-0 z-30 bg-fg/40 backdrop-blur-sm lg:hidden"
@@ -23,7 +31,7 @@ export default function Layout() {
                 />
             )}
 
-            <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} currentUser={currentUser} profile={profile} role={role} can={can} actor={actor} />
+            <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} currentUser={currentUser} profile={profile} role={role} can={can} actor={actor} worklist={worklist} />
 
             <div className="flex flex-col flex-1 w-full overflow-hidden">
                 <TopNav

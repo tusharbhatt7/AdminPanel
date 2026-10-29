@@ -15,6 +15,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import RideManagement from './pages/RideManagement';
 import Payments from './pages/Payments';
+import DriverWallets from './pages/DriverWallets';
+import ActiveRides from './pages/ActiveRides';
 import Reviews from './pages/Reviews';
 import UserManagement from './pages/UserManagement';
 import AuditLogs from './pages/AuditLogs';
@@ -88,9 +90,15 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="rides" element={<RideManagement />} />
+            <Route path="live" element={
+              <RequirePermission permission={PERMISSIONS.RIDES_READ}><ActiveRides /></RequirePermission>
+            } />
             <Route path="drivers" element={<DriverManagement />} />
             <Route path="customers" element={<CustomerManagement />} />
             <Route path="payments" element={<Payments />} />
+            <Route path="wallets" element={
+              <RequirePermission permission={PERMISSIONS.WALLETS_READ}><DriverWallets /></RequirePermission>
+            } />
             <Route path="complaints" element={<Complaints />} />
             <Route path="reviews" element={<Reviews />} />
             <Route path="promotions" element={<Promotions />} />

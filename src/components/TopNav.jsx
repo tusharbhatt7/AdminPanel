@@ -43,7 +43,10 @@ export default function TopNav({ toggleSidebar, currentUser, profile, role, pend
                 <input
                     id="global-search"
                     type="search"
-                    placeholder="Search anything (rides, drivers, customers...)"
+                    placeholder="Search rides…  (press ⌘K to jump anywhere)"
+                    // Enter still filters the ride list, which now actually
+                    // reads ?q=. ⌘K opens the palette, which resolves a pasted
+                    // id, phone or plate to the record itself.
                     onKeyDown={(e) => {
                         const q = e.currentTarget.value.trim();
                         if (e.key === 'Enter' && q) navigate(`/rides?q=${encodeURIComponent(q)}`);

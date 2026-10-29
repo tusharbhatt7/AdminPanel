@@ -59,6 +59,34 @@ export default function DriverManagement() {
         loadDrivers();
     }, []);
 
+    // ?driver=<id> alongside the existing router-state path. Router state is
+    // lost on reload and cannot be pasted into chat, so a link sent to a
+    // colleague opened the bare list; a URL param survives both.
+    useEffect(() => {
+        const wanted = searchParams.get('driver');
+        if (!wanted || !drivers.length) return;
+        const target = drivers.find((d) => d.id === wanted);
+        if (target) {
+            setSelectedDriverForDetails(target);
+            setIsDrawerOpen(true);
+        }
+    }, [searchParams, drivers]);
+
+    // Closing the drawer has to drop the param too. Left in place, the deep-link
+    // effect above would reopen the drawer the next time the list reloads —
+    // after an approval, say — and the record would spring back open on its own.
+    const closeDetailDrawer = () => {
+        setIsDrawerOpen(false);
+        if (searchParams.get('driver')) {
+            setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete('driver');
+                return next;
+            }, { replace: true });
+        }
+    };
+
+
     useEffect(() => {
         if (drivers.length > 0 && location.state?.selectedDriverId) {
             const targetDriver = drivers.find(d => d.id === location.state.selectedDriverId);
@@ -602,7 +630,7 @@ export default function DriverManagement() {
             <DriverDetailDrawer
                 canEdit={mayWrite}
                 isOpen={isDrawerOpen}
-                onClose={() => setIsDrawerOpen(false)}
+                onClose={closeDetailDrawer}
                 driver={selectedDriverForDetails}
                 onSave={handleSaveDriverDetails}
                 isSaving={isSavingDetails}
