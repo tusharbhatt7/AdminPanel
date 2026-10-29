@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { formatRupees } from '../lib/wallet';
 import { X, Save, User, Mail, Phone, Car, CircleDot, Image as ImageIcon, FileText, ShieldCheck, Clock, CheckCircle2, AlertCircle, Calendar, CreditCard, Activity, Award } from 'lucide-react';
 
 export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, isSaving , canEdit = true }) {
@@ -31,8 +33,8 @@ export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, is
                 vehicleType: driver.vehicleType || '',
                 selectedService: driver.selectedService || '',
                 status: driver.status || 'Offline',
-                walletBalance: driver.walletBalance || 0,
-                totalEarnings: driver.totalEarnings || 0,
+                // walletBalance and totalEarnings are deliberately absent: they are
+                // rendered read-only above and must never travel in this form's payload.
                 selfieUrl: driver.selfieUrl || driver.profileImageUrl || '',
                 idFrontUrl: driver.idFrontUrl || driver.idFrontImageUrl || '',
                 idBackUrl: driver.idBackUrl || driver.idBackImageUrl || '',
@@ -369,29 +371,39 @@ export default function DriverDetailDrawer({ isOpen, onClose, driver, onSave, is
                                         </>
                                     )}
 
-                                    {/* Financials */}
+                                    {/* Financials — read-only on purpose.
+                                        These were editable number inputs, and saving the form wrote them back.
+                                        Two problems with that: the value posted is whatever was loaded when the
+                                        drawer opened, so a ride settling meanwhile was silently reverted; and a
+                                        balance moved this way leaves no wallet_transactions row, which breaks the
+                                        running balanceBefore/balanceAfter chain for good. Corrections go through
+                                        adminAdjustWallet, which writes the row and the balance together. */}
                                     <div className="bg-raised rounded-lg p-5 border border-line">
-                                        <h3 className="text-sm font-bold text-fg uppercase tracking-wider mb-4 flex items-center"><CreditCard className="w-4 h-4 mr-2 text-brand-ink" /> Financial Overview</h3>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-sm font-bold text-fg uppercase tracking-wider flex items-center">
+                                                <CreditCard className="w-4 h-4 mr-2 text-brand-ink" /> Financial Overview
+                                            </h3>
+                                            <Link
+                                                to={`/wallets?driver=${driver.id}`}
+                                                className="text-[12px] font-medium text-link hover:underline"
+                                            >
+                                                Open wallet
+                                            </Link>
+                                        </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="bg-surface p-4 rounded-lg shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)] border border-line/60 transition-all duration-300 hover:-translate-y-0.5 group/card">
-                                                <label className="block text-xs font-semibold text-fg-3 uppercase tracking-wider mb-2 transition-colors group-hover/card:text-brand-ink">Wallet Balance</label>
-                                                <div className="relative">
-                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                        <span className="text-fg-3 font-semibold group-focus-within/card:text-brand-ink transition-colors">₹</span>
-                                                    </div>
-                                                    <input type="number" name="walletBalance" value={formData.walletBalance} onChange={handleChange} className="w-full pl-8 pr-4 py-2.5 text-lg font-bold text-fg bg-raised/50 border border-line rounded-lg focus:bg-raised focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 hover:border-line-strong outline-none" />
-                                                </div>
+                                            <div className="bg-surface p-4 rounded-lg border border-line/60">
+                                                <label className="block text-xs font-semibold text-fg-3 uppercase tracking-wider mb-2">Wallet Balance</label>
+                                                <p className="text-lg font-bold font-mono text-fg">{formatRupees(driver.walletBalance ?? 0)}</p>
                                             </div>
-                                            <div className="bg-surface p-4 rounded-lg shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)] border border-line/60 transition-all duration-300 hover:-translate-y-0.5 group/card">
-                                                <label className="block text-xs font-semibold text-fg-3 uppercase tracking-wider mb-2 transition-colors group-hover/card:text-ok">Total Earnings</label>
-                                                <div className="relative">
-                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                        <span className="text-fg-3 font-semibold group-focus-within/card:text-ok transition-colors">₹</span>
-                                                    </div>
-                                                    <input type="number" name="totalEarnings" value={formData.totalEarnings} onChange={handleChange} className="w-full pl-8 pr-4 py-2.5 text-lg font-bold text-fg bg-raised/50 border border-line rounded-lg focus:bg-raised focus:ring-2 focus:ring-ok/25 focus:border-ok transition-all duration-200 hover:border-line-strong outline-none" />
-                                                </div>
+                                            <div className="bg-surface p-4 rounded-lg border border-line/60">
+                                                <label className="block text-xs font-semibold text-fg-3 uppercase tracking-wider mb-2">Total Earnings</label>
+                                                <p className="text-lg font-bold font-mono text-fg">{formatRupees(driver.totalEarnings ?? 0)}</p>
                                             </div>
                                         </div>
+                                        <p className="mt-3 text-[11px] text-fg-3">
+                                            Balances are written by the payment functions. To correct one, use Adjust balance on the wallet screen —
+                                            it records a ledger entry alongside the change.
+                                        </p>
                                     </div>
                                 </div>
                             )}

@@ -157,10 +157,35 @@ export const updateDriverApproval = async (driverId, newStatus) => {
     }
 };
 
+/**
+ * Fields on the driver document that belong to the wallet, not to the profile.
+ *
+ * The drawer builds its payload as { ...driver, ...formData }, so the whole
+ * loaded document travels with every profile save — including a balance read
+ * when the drawer opened. Writing that back reverts any credit that landed in
+ * between, and leaves no wallet_transactions row to explain it, so the running
+ * balance chain stops reconciling permanently.
+ *
+ * Stripping here rather than only in the form means no future caller can
+ * reintroduce the problem by spreading a driver object into this function.
+ * Balances move through the Cloud Function callables, which write the ledger
+ * row and the balance in one transaction.
+ */
+const WALLET_OWNED_FIELDS = [
+    'walletBalance',
+    'promotionalBalance',
+    'totalEarnings',
+    'onlineEarnings',
+    'totalCommissionPaid',
+    'totalTrips',
+    'recentTransactions',
+];
+
 export const updateDriverDetails = async (driverId, updatedData) => {
     try {
         const driverRef = doc(db, "drivers", driverId);
         const { id, ...dataToSave } = updatedData;
+        for (const field of WALLET_OWNED_FIELDS) delete dataToSave[field];
         await updateDoc(driverRef, dataToSave);
         return true;
     } catch (error) {

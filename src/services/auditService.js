@@ -34,6 +34,10 @@ export const AUDIT_ACTIONS = {
     CUSTOMER_UPDATED: 'customer.updated',
     AD_CREATED: 'ad.created',
     AD_DELETED: 'ad.deleted',
+    RIDE_CANCELLED: 'ride.cancelled',
+    WALLET_ADJUSTED: 'wallet.adjusted',
+    WITHDRAWAL_APPROVED: 'withdrawal.approved',
+    WITHDRAWAL_REJECTED: 'withdrawal.rejected',
 };
 
 export const ACTION_LABELS = {
@@ -51,6 +55,10 @@ export const ACTION_LABELS = {
     [AUDIT_ACTIONS.CUSTOMER_UPDATED]: 'Customer updated',
     [AUDIT_ACTIONS.AD_CREATED]: 'Advertisement uploaded',
     [AUDIT_ACTIONS.AD_DELETED]: 'Advertisement deleted',
+    [AUDIT_ACTIONS.RIDE_CANCELLED]: 'Ride cancelled',
+    [AUDIT_ACTIONS.WALLET_ADJUSTED]: 'Wallet adjusted',
+    [AUDIT_ACTIONS.WITHDRAWAL_APPROVED]: 'Withdrawal approved',
+    [AUDIT_ACTIONS.WITHDRAWAL_REJECTED]: 'Withdrawal rejected',
 };
 
 const PAGE_SIZE = 50;

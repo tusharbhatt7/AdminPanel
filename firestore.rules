@@ -603,6 +603,37 @@ service cloud.firestore {
         || (isAuthenticated() && resource.data.userId == request.auth.uid);
     }
 
+    // ── DRIVER WALLET LEDGER ──────────────────────────────────────────────────
+    //
+    // drivers/{driverId}/wallet_transactions/{txnId}
+    //
+    // Written by Cloud Functions only. The Admin SDK bypasses rules, so denying
+    // every client write costs the functions nothing and closes the hole that
+    // matters: a row written by hand, or a balance moved without one, breaks the
+    // running balanceBeforePaise → balanceAfterPaise chain, and once that chain
+    // stops reconciling there is no way to reconstruct where a driver's money
+    // went. Read-only here is what keeps the ledger an audit trail rather than
+    // just another editable collection.
+
+    // Direct reads: a driver's own history, and admins.
+    match /drivers/{driverId}/wallet_transactions/{txnId} {
+      allow read: if isAdmin() || isOwner(driverId);
+      allow write: if false;
+    }
+
+    // Collection-group reads: the panel's combined ledger across all drivers.
+    //
+    // This is a separate rule by necessity, not duplication. A collection-group
+    // query is matched only by a collection-group rule — the path-scoped rule
+    // above does not grant it, which is why the query fails with
+    // permission-denied without this block. Admin-only: a driver running a
+    // collectionGroup query is matched here, not above, and is refused, so they
+    // cannot read anyone else's ledger.
+    match /{path=**}/wallet_transactions/{txnId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     // ── WITHDRAWAL REQUESTS ───────────────────────────────────────────────────
 
     match /withdrawal_requests/{requestId} {
