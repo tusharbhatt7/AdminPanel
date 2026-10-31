@@ -8,7 +8,7 @@ import {
 import LiveMap from './LiveMap';
 import { StatusChip, Avatar } from './RideBits';
 import { statusLabel, statusTone, formatCompact, formatCurrency, toDate } from '../lib/rideStatus';
-import { rideTimeline, deriveIssues, worstTone } from '../lib/activeRides';
+import { rideTimeline, deriveIssues, worstTone, AWAITING_STATUSES } from '../lib/activeRides';
 import { formatFix } from '../services/liveTrackingService';
 import { cancelRideAsAdmin } from '../services/rideService';
 import { recordAudit, AUDIT_ACTIONS } from '../services/auditService';
@@ -206,6 +206,17 @@ export default function ActiveRideDetail({ ride, position, passenger, trail, act
     const straightFallback = [pickupLat, pickupLng, destLat, destLng].every(Number.isFinite)
         ? [{ lat: pickupLat, lng: pickupLng }, { lat: destLat, lng: destLng }]
         : null;
+
+    // Driver to pickup, drawn only while they are still on their way there.
+    // Once the ride is under way the driver has passed the pickup, and a line
+    // running back to it is a connection to somewhere nobody is going.
+    const approach = AWAITING_STATUSES.includes(ride.status)
+        && position && Number.isFinite(position.latitude) && Number.isFinite(pickupLat)
+        ? [
+            { lat: position.latitude, lng: position.longitude },
+            { lat: pickupLat, lng: pickupLng },
+        ]
+        : null;
     const startedAt = ride.startedAt ?? ride.acceptedAt ?? ride.requestTime;
 
     return (
@@ -272,6 +283,7 @@ export default function ActiveRideDetail({ ride, position, passenger, trail, act
                     // mistaken for the way the car will actually go.
                     route={activeRoute?.path ?? straightFallback}
                     routeIsRoad={!!activeRoute?.path}
+                    approach={approach}
                     trail={trail}
                     className="w-full h-[17rem]"
                 />
@@ -286,9 +298,14 @@ export default function ActiveRideDetail({ ride, position, passenger, trail, act
                         <span className={`w-4 h-0.5 rounded ${activeRoute?.path ? 'bg-info' : 'bg-fg-3'}`} />
                         {activeRoute?.path ? 'Route' : 'Direct line'}
                     </span>
+                    {approach && (
+                        <span className="flex items-center gap-1.5 text-[11px] text-fg-2">
+                            <span className="w-4 h-0.5 rounded bg-brand" /> To pickup
+                        </span>
+                    )}
                     {trail?.length > 1 && (
                         <span className="flex items-center gap-1.5 text-[11px] text-fg-2">
-                            <span className="w-4 h-0.5 rounded bg-brand" /> Travelled
+                            <span className="w-4 h-0.5 rounded bg-fg opacity-70" /> Travelled
                         </span>
                     )}
                     {activeRoute?.distanceText && (
