@@ -145,7 +145,7 @@ export default function ActiveRideDetail({ ride, position, passenger, trail, act
     };
 
     const markers = [];
-    if (position) {
+    if (position && Number.isFinite(position.latitude)) {
         markers.push({
             id: `driver-${ride.driverId}`, rideId: ride.id, kind: 'driver',
             lat: position.latitude, lng: position.longitude,

@@ -1,4 +1,4 @@
-import { ACTIVE_STATUSES, PENDING_STATUSES, toDate } from './rideStatus';
+import { ACTIVE_STATUSES, PENDING_STATUSES, toDate, formatAge } from './rideStatus';
 import { plainOrNull } from './pii';
 import { CREDIT_SETTLED } from './wallet';
 
@@ -133,11 +133,21 @@ export const deriveIssues = (ride, position, nowMs = 0) => {
 
     // Location — the single most common dispatch question.
     if (isLive && ride.driverId) {
-        if (!position) {
+        if (position?.tooOld) {
+            // Distinct from never-reported on purpose: one means the app has
+            // not run in months, the other means it has never been seen at
+            // all, and they point at completely different investigations.
+            issues.push({
+                key: 'driver_dormant', label: 'Driver Offline', tone: 'danger',
+                short: 'No recent location',
+                detail: `The driver app last reported ${formatAge(position.timestamp)}. `
+                    + 'The stored position is too old to be where they are, so it is not shown on the map.',
+            });
+        } else if (!position) {
             issues.push({
                 key: 'no_signal', label: 'No Driver Signal', tone: 'danger',
                 short: 'No location',
-                detail: 'The driver app has never reported a position for this ride.',
+                detail: 'The driver app has never reported a position — not live, and no last-known position stored.',
             });
         } else if (position.stale) {
             const age = position.timestamp ? Math.round((now - position.timestamp) / 1000) : null;
