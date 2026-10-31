@@ -130,12 +130,23 @@ const moveMarker = (marker, target, gapMs) => {
     marker.__fcRaf = requestAnimationFrame(step);
 };
 
-export default function LiveMap({ markers = [], focusId = null, onSelect, className = '' }) {
+export default function LiveMap({
+    markers = [],
+    route = null,
+    routeIsRoad = true,
+    trail = null,
+    focusId = null,
+    onSelect,
+    className = '',
+}) {
     const containerRef = useRef(null);
     const mapRef = useRef(null);
     const mapsRef = useRef(null);
     const markerRefs = useRef(new Map());
+    const routeRef = useRef(null);
+    const trailRef = useRef(null);
     const didFitRef = useRef(false);
+    const fittedWithRouteRef = useRef(false);
 
     const [theme, setTheme] = useState(readTheme);
     // A failure that happened before this mount (navigating back to the page
@@ -181,6 +192,8 @@ export default function LiveMap({ markers = [], focusId = null, onSelect, classN
             cancelled = true;
             cached.forEach((marker) => { stopGlide(marker); marker.setMap(null); });
             cached.clear();
+            routeRef.current?.setMap(null); routeRef.current = null;
+            trailRef.current?.setMap(null); trailRef.current = null;
             mapRef.current = null;
         };
     }, []);
@@ -292,6 +305,16 @@ export default function LiveMap({ markers = [], focusId = null, onSelect, classN
         // laying out — fitting then computes against the wrong height and lands
         // two or three zoom levels too wide, which is how a 5 km ride came to
         // be drawn across 30 km of Delhi.
+        // The route arrives a second or so after the markers, from a network
+        // call. Fitting only once would frame the endpoints and let the road
+        // between them bulge off screen, so the arrival of a route earns one
+        // more fit — and exactly one, or panning would be impossible.
+        const hasRoute = (route?.length ?? 0) > 0;
+        if (hasRoute && didFitRef.current && !fittedWithRouteRef.current) {
+            didFitRef.current = false;
+        }
+        if (hasRoute) fittedWithRouteRef.current = true;
+
         if (!didFitRef.current && seen.size > 0) {
             const bounds = new maps.LatLngBounds();
             let count = 0;
@@ -300,6 +323,9 @@ export default function LiveMap({ markers = [], focusId = null, onSelect, classN
                 bounds.extend({ lat: m.lat, lng: m.lng });
                 count += 1;
             }
+            // Include the route: a road that loops out of the box between two
+            // nearby endpoints would otherwise be framed out of view.
+            for (const p of route ?? []) { bounds.extend(p); count += 1; }
             if (count) {
                 didFitRef.current = true;
 
@@ -327,7 +353,73 @@ export default function LiveMap({ markers = [], focusId = null, onSelect, classN
                 else maps.event.addListenerOnce(map, 'idle', applyFit);
             }
         }
-    }, [markers, focusId, onSelect, theme, status]);
+    }, [markers, route, focusId, onSelect, theme, status]);
+
+    // The planned route, pickup to drop.
+    //
+    // Drawn dashed and grey when it is not a real road route — a straight line
+    // between two points looks authoritative at a glance, and someone deciding
+    // whether a driver is off course must be able to tell a measured route from
+    // two coordinates joined with a ruler.
+    useEffect(() => {
+        const map = mapRef.current;
+        const maps = mapsRef.current;
+        if (!map || !maps) return;
+
+        if (!route?.length) {
+            routeRef.current?.setMap(null);
+            routeRef.current = null;
+            return;
+        }
+
+        const options = routeIsRoad
+            ? {
+                strokeColor: token('--c-info'),
+                strokeOpacity: 0.95,
+                strokeWeight: 5,
+            }
+            : {
+                // Dashed: icons every 12px with the stroke itself invisible.
+                strokeOpacity: 0,
+                strokeWeight: 0,
+                icons: [{
+                    icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.7, strokeWeight: 3, scale: 3, strokeColor: token('--c-fg-3') },
+                    offset: '0',
+                    repeat: '12px',
+                }],
+            };
+
+        if (routeRef.current) {
+            routeRef.current.setPath(route);
+            routeRef.current.setOptions(options);
+        } else {
+            routeRef.current = new maps.Polyline({ ...options, path: route, map, zIndex: 1 });
+        }
+    }, [route, routeIsRoad, status]);
+
+    // Where the driver has actually been this session. Distinct from the route
+    // on purpose: one is the plan, the other is what happened, and the gap
+    // between them is the thing a dispatcher is looking for.
+    useEffect(() => {
+        const map = mapRef.current;
+        const maps = mapsRef.current;
+        if (!map || !maps) return;
+
+        if (!trail || trail.length < 2) {
+            trailRef.current?.setMap(null);
+            trailRef.current = null;
+            return;
+        }
+
+        const options = {
+            strokeColor: token('--c-brand'),
+            strokeOpacity: 0.9,
+            strokeWeight: 3,
+        };
+
+        if (trailRef.current) trailRef.current.setPath(trail);
+        else trailRef.current = new maps.Polyline({ ...options, path: trail, map, zIndex: 2 });
+    }, [trail, status]);
 
     // Selecting a ride in the list centres it — the one time the view should move.
     useEffect(() => {

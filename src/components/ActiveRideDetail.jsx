@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
@@ -13,6 +13,7 @@ import { formatFix } from '../services/liveTrackingService';
 import { cancelRideAsAdmin } from '../services/rideService';
 import { recordAudit, AUDIT_ACTIONS } from '../services/auditService';
 import { toneText, toneCallout, toneDot } from '../lib/tones';
+import { fetchRoute } from '../services/directionsService';
 
 /**
  * Everything dispatch needs about one ride.
@@ -83,9 +84,39 @@ const ContactLines = ({ phone, id, idLabel, profileHref }) => (
     </div>
 );
 
-export default function ActiveRideDetail({ ride, position, passenger, actor, canCancel = false, onClose }) {
+export default function ActiveRideDetail({ ride, position, passenger, trail, actor, canCancel = false, onClose }) {
     const [copied, setCopied] = useState(false);
     const [cancelling, setCancelling] = useState(false);
+    const [route, setRoute] = useState(null);
+
+    const pickupLat = ride?.pickup.lat;
+    const pickupLng = ride?.pickup.lng;
+    const destLat = ride?.destination.lat;
+    const destLng = ride?.destination.lng;
+
+    // The road route, fetched once per pair of endpoints and cached in the
+    // service. Depending on the coordinates rather than the ride object means
+    // a position update every few seconds does not re-request a route that
+    // cannot have changed.
+    //
+    // The result carries the endpoints it was fetched for, and is only drawn
+    // when those still match. Clearing it on change would do the same job but
+    // one render later — long enough to paint the previous ride's route across
+    // the new ride's map, which is exactly the kind of wrong line someone
+    // would act on.
+    const routeKey = `${pickupLat},${pickupLng}>${destLat},${destLng}`;
+
+    useEffect(() => {
+        let cancelled = false;
+        if (![pickupLat, pickupLng, destLat, destLng].every(Number.isFinite)) return undefined;
+
+        fetchRoute({ lat: pickupLat, lng: pickupLng }, { lat: destLat, lng: destLng })
+            .then((result) => { if (!cancelled) setRoute({ key: routeKey, ...(result ?? {}) }); });
+
+        return () => { cancelled = true; };
+    }, [pickupLat, pickupLng, destLat, destLng, routeKey]);
+
+    const activeRoute = route?.key === routeKey ? route : null;
 
     if (!ride) {
         return (
@@ -145,6 +176,10 @@ export default function ActiveRideDetail({ ride, position, passenger, actor, can
     }
 
     const navTo = (p) => (p.lat != null ? `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}` : null);
+
+    const straightFallback = [pickupLat, pickupLng, destLat, destLng].every(Number.isFinite)
+        ? [{ lat: pickupLat, lng: pickupLng }, { lat: destLat, lng: destLng }]
+        : null;
     const startedAt = ride.startedAt ?? ride.acceptedAt ?? ride.requestTime;
 
     return (
@@ -200,7 +235,20 @@ export default function ActiveRideDetail({ ride, position, passenger, actor, can
             )}
 
             <div className="overflow-hidden border rounded-xl border-line lift">
-                <LiveMap markers={markers} focusId={ride.id} className="w-full h-[17rem]" />
+                {/* No focusId here, unlike the list view. Focus pans to the
+                    driver and zooms in; with one ride on screen that framed the
+                    destination off the edge and cut the route in half. This map
+                    should show the whole journey. */}
+                <LiveMap
+                    markers={markers}
+                    // A road route when Directions returns one; otherwise the
+                    // two endpoints joined, drawn dashed so it cannot be
+                    // mistaken for the way the car will actually go.
+                    route={activeRoute?.path ?? straightFallback}
+                    routeIsRoad={!!activeRoute?.path}
+                    trail={trail}
+                    className="w-full h-[17rem]"
+                />
                 {/* Legend, as drawn — it is the only way to read the dots. */}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 border-t bg-surface border-line">
                     {[['ok', 'Pickup'], ['danger', 'Destination'], ['info', 'Driver'], ['violet', 'Rider']].map(([tone, label]) => (
@@ -208,6 +256,20 @@ export default function ActiveRideDetail({ ride, position, passenger, actor, can
                             <span className={`w-2 h-2 rounded-full ${toneDot(tone)}`} /> {label}
                         </span>
                     ))}
+                    <span className="flex items-center gap-1.5 text-[11px] text-fg-2">
+                        <span className={`w-4 h-0.5 rounded ${activeRoute?.path ? 'bg-info' : 'bg-fg-3'}`} />
+                        {activeRoute?.path ? 'Route' : 'Direct line'}
+                    </span>
+                    {trail?.length > 1 && (
+                        <span className="flex items-center gap-1.5 text-[11px] text-fg-2">
+                            <span className="w-4 h-0.5 rounded bg-brand" /> Travelled
+                        </span>
+                    )}
+                    {activeRoute?.distanceText && (
+                        <span className="ml-auto font-mono text-[11px] text-fg-3">
+                            {activeRoute.distanceText} · {activeRoute.durationText}
+                        </span>
+                    )}
                 </div>
             </div>
 

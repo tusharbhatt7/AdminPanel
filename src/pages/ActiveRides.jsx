@@ -23,6 +23,20 @@ import { toneChip, toneText } from '../lib/tones';
  * single message.
  */
 
+// A trail point closer than this to the last one is noise, not movement.
+const TRAIL_MIN_METRES = 5;
+const TRAIL_MAX_POINTS = 300;
+
+const metresBetween = (a, b) => {
+    const R = 6_371_000;
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(b.latitude - a.lat);
+    const dLng = toRad(b.longitude - a.lng);
+    const h = Math.sin(dLat / 2) ** 2
+        + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.latitude)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+};
+
 const Kpi = ({ icon: Icon, value, label, hint, hintTone, tone }) => (
     <div className="flex items-start gap-3 p-4 border rounded-xl bg-surface border-line lift">
         <div className={`grid w-11 h-11 rounded-xl shrink-0 place-items-center ${toneChip(tone ?? 'info')}`}>
@@ -51,6 +65,7 @@ export default function ActiveRides() {
     const [positions, setPositions] = useState({});
     const [lastKnown, setLastKnown] = useState({});
     const [passenger, setPassenger] = useState(null);
+    const [trails, setTrails] = useState({});
     const [includeSearching, setIncludeSearching] = useState(true);
     const [error, setError] = useState(null);
     const [fullscreen, setFullscreen] = useState(false);
@@ -106,6 +121,43 @@ export default function ActiveRides() {
         })();
         return () => { cancelled = true; };
     }, [assignedDriverIds, positions]);
+
+    // Breadcrumbs: where each driver has actually been while this tab has been
+    // open. Nothing stores a position history, so this is session-scoped and
+    // starts empty on reload — it is shown as the travelled path, never as the
+    // whole journey.
+    //
+    // Kept in a ref and mirrored into state so appending a point does not
+    // depend on the previous render having committed; RTDB can deliver several
+    // fixes between paints.
+    const trailRef = useRef({});
+    useEffect(() => {
+        let changed = false;
+
+        for (const [driverId, position] of Object.entries(positions)) {
+            if (position.stale) continue;
+            const points = trailRef.current[driverId] ?? [];
+            const last = points[points.length - 1];
+            // Below five metres is receiver noise, and plotting it draws a
+            // scribble over a parked car.
+            if (last && metresBetween(last, position) < TRAIL_MIN_METRES) continue;
+
+            trailRef.current[driverId] = [
+                ...points.slice(-(TRAIL_MAX_POINTS - 1)),
+                { lat: position.latitude, lng: position.longitude },
+            ];
+            changed = true;
+        }
+
+        // Drop drivers who are no longer on a tracked ride, so a long shift
+        // does not accumulate paths for cars that finished hours ago.
+        const live = new Set(assignedDriverIds);
+        for (const id of Object.keys(trailRef.current)) {
+            if (!live.has(id)) { delete trailRef.current[id]; changed = true; }
+        }
+
+        if (changed) setTrails({ ...trailRef.current });
+    }, [positions, assignedDriverIds]);
 
     const visibleLastKnown = useMemo(() => {
         const live = new Set(assignedDriverIds);
@@ -241,6 +293,7 @@ export default function ActiveRides() {
                     ride={selected?.ride ?? null}
                     position={selected?.position ?? null}
                     passenger={passenger?.rideId === selectedId ? passenger : null}
+                    trail={selected?.ride.driverId ? trails[selected.ride.driverId] : null}
                     actor={actor}
                     canCancel={canCancel}
                     onClose={() => select(null)}
