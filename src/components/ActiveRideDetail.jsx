@@ -14,6 +14,8 @@ import { cancelRideAsAdmin } from '../services/rideService';
 import { recordAudit, AUDIT_ACTIONS } from '../services/auditService';
 import { toneText, toneCallout, toneDot } from '../lib/tones';
 import { fetchRoute } from '../services/directionsService';
+import { fetchCustomerById } from '../services/customerService';
+import { plainOrNull } from '../lib/pii';
 
 /**
  * Everything dispatch needs about one ride.
@@ -88,6 +90,22 @@ export default function ActiveRideDetail({ ride, position, passenger, trail, act
     const [copied, setCopied] = useState(false);
     const [cancelling, setCancelling] = useState(false);
     const [route, setRoute] = useState(null);
+    const [customer, setCustomer] = useState(null);
+
+    const customerId = ride?.customerId ?? null;
+
+    // Who booked. A ride carries no name or phone, so this is the only way to
+    // show a person rather than an id. Tagged with the customer it was fetched
+    // for, so a result still in flight when the selection changes cannot paint
+    // the previous rider's name onto this ride.
+    useEffect(() => {
+        if (!customerId) return undefined;
+        let cancelled = false;
+        fetchCustomerById(customerId).then((found) => {
+            if (!cancelled) setCustomer({ id: customerId, ...(found ?? {}) });
+        });
+        return () => { cancelled = true; };
+    }, [customerId]);
 
     const pickupLat = ride?.pickup.lat;
     const pickupLng = ride?.pickup.lng;
@@ -117,6 +135,14 @@ export default function ActiveRideDetail({ ride, position, passenger, trail, act
     }, [pickupLat, pickupLng, destLat, destLng, routeKey]);
 
     const activeRoute = route?.key === routeKey ? route : null;
+
+    // Ride fields win when present (older rides carry them); the user record
+    // fills the gap for everything written by the current app.
+    const profile = customer?.id === customerId ? customer : null;
+    const customerName = ride?.customerName ?? plainOrNull(profile?.name) ?? null;
+    const customerPhone = ride?.customerPhone ?? plainOrNull(profile?.phone) ?? null;
+    const customerEmail = ride?.customerEmail ?? plainOrNull(profile?.email) ?? null;
+    const customerPhoto = profile?.photoUrl ?? null;
 
     if (!ride) {
         return (
@@ -287,20 +313,23 @@ export default function ActiveRideDetail({ ride, position, passenger, trail, act
                     )}
                 >
                     <div className="flex items-start gap-3">
-                        <Avatar name={ride.customerName} size={44} />
+                        <Avatar name={customerName} src={customerPhoto} size={44} />
                         <div className="min-w-0">
                             {ride.customerId ? (
                                 <Link
                                     to={`/customers?customer=${ride.customerId}`}
                                     className="block text-[14px] font-bold truncate text-fg hover:text-link hover:underline"
                                 >
-                                    {ride.customerName || 'Unnamed'}
+                                    {customerName || customerEmail || 'Unnamed'}
                                 </Link>
                             ) : (
-                                <p className="text-[14px] font-bold truncate text-fg">{ride.customerName || 'Unnamed'}</p>
+                                <p className="text-[14px] font-bold truncate text-fg">{customerName || customerEmail || 'Unnamed'}</p>
+                            )}
+                            {customerName && customerEmail && (
+                                <p className="text-[11px] truncate text-fg-3">{customerEmail}</p>
                             )}
                             <ContactLines
-                                phone={ride.customerPhone} id={ride.customerId} idLabel="CUS"
+                                phone={customerPhone} id={ride.customerId} idLabel="CUS"
                                 profileHref={ride.customerId ? `/customers?customer=${ride.customerId}` : null}
                             />
                             {ride.customerId && (
@@ -385,11 +414,15 @@ export default function ActiveRideDetail({ ride, position, passenger, trail, act
 
                 <div className="grid px-2 place-items-center">
                     <p className="font-mono text-[12px] font-bold text-fg whitespace-nowrap">
-                        {ride.distanceKm != null ? `${ride.distanceKm.toFixed(1)} km` : '—'}
+                        {ride.distanceKm != null
+                            ? `${ride.distanceKm.toFixed(1)} km`
+                            : activeRoute?.distanceText ?? '—'}
                     </p>
                     <ArrowRight className="w-4 h-4 my-0.5 text-fg-3" />
                     <p className="text-[10px] text-fg-3 whitespace-nowrap">
-                        {ride.durationMin != null ? `~${Math.round(ride.durationMin)} min` : ''}
+                        {ride.durationMin != null
+                            ? `~${Math.round(ride.durationMin)} min`
+                            : activeRoute?.durationText ?? ''}
                     </p>
                 </div>
 
@@ -417,7 +450,16 @@ export default function ActiveRideDetail({ ride, position, passenger, trail, act
                         <Fact icon={CreditCard} label="Estimated Fare" value={formatCurrency(ride.fare)} />
                         <Fact icon={Calendar} label="Booking Time" value={formatCompact(ride.requestTime)} />
                         <Fact icon={CreditCard} label="Payment Method" value={ride.paymentMode} />
-                        <Fact icon={RouteIcon} label="Distance (Est.)" value={ride.distanceKm != null ? `${ride.distanceKm.toFixed(1)} km` : null} />
+                        {/* requestRide() stores no distance, so the ride
+                            itself usually has none. The route we already
+                            fetched does, and it is a better number anyway —
+                            measured along roads rather than estimated. */}
+                        <Fact
+                            icon={RouteIcon} label="Distance (Est.)"
+                            value={ride.distanceKm != null
+                                ? `${ride.distanceKm.toFixed(1)} km`
+                                : activeRoute?.distanceText ?? null}
+                        />
                         <Fact
                             icon={Clock} label="Payment Status" value={ride.paymentStatus || 'Pending'}
                             tone={ride.paymentStatus === 'failed' ? 'danger' : ride.paymentStatus === 'paid' ? 'ok' : 'warn'}

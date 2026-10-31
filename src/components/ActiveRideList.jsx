@@ -47,7 +47,7 @@ export default function ActiveRideList({ entries, loading, selectedId, onSelect 
             .filter((e) => matchesTab(e, tab))
             .filter((e) => vehicle === 'all' || e.ride.vehicleType === vehicle)
             .filter((e) => !q || [
-                e.ride.id, e.ride.shortId, e.ride.customerName, e.ride.customerPhone,
+                e.ride.id, e.ride.shortId, e.ride.customerName, e.ride.customerEmail, e.ride.customerPhone,
                 e.ride.driverName, e.ride.vehicleNumber, e.ride.pickup.address, e.ride.destination.address,
             ].some((f) => f && String(f).toLowerCase().includes(q)))
             .sort(SORTS[sort].compare);
@@ -163,9 +163,14 @@ function RideRow({ entry, selected, onSelect }) {
             </div>
 
             <div className="flex items-center gap-2.5 mt-2">
-                <Avatar name={ride.customerName} size={36} />
+                {/* A ride carries userEmail but no name, so the email is
+                    the fallback label rather than the word "Customer" on
+                    every row. */}
+                <Avatar name={ride.customerName || ride.customerEmail} size={36} />
                 <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-medium truncate text-fg">{ride.customerName || 'Customer'}</p>
+                    <p className="text-[13px] font-medium truncate text-fg">
+                        {ride.customerName || ride.customerEmail || 'Customer'}
+                    </p>
                     <p className="flex items-center gap-1 text-[11px] truncate text-fg-3">
                         <User className="w-3 h-3 shrink-0" />
                         {ride.driverName || 'Unassigned'}

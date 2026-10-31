@@ -28,7 +28,10 @@ const CACHE_MS = 60_000;
 // two collections; with it, typing is free after the first character.
 const cache = { at: 0, drivers: null, customers: null, rides: null };
 
-const isFirestoreId = (q) => /^[A-Za-z0-9_-]{16,32}$/.test(q);
+// Firestore auto-ids are 20 characters, but requestRide() names ride
+// documents after DateTime.now().millisecondsSinceEpoch -- 13 digits. A
+// minimum of 16 meant pasting a real ride id never took the direct-read path.
+const isFirestoreId = (q) => /^[A-Za-z0-9_-]{16,32}$/.test(q) || /^\d{10,16}$/.test(q);
 const isShortRideId = (q) => /^FC-[A-Za-z0-9]{4,8}$/i.test(q);
 const digitsOf = (q) => q.replace(/\D/g, '');
 
@@ -102,7 +105,7 @@ export const globalSearch = async (raw) => {
         countEncrypted(r.userPhone, r.driverPhone, r.vehicleNumber);
         const matched = (isShortRideId(q) && shortRideId(r.id).toLowerCase() === needle)
             || r.id.toLowerCase().includes(needle)
-            || hit(r.userName, needle) || hit(r.driverName, needle)
+            || hit(r.userName, needle) || hit(r.userEmail, needle) || hit(r.driverName, needle)
             || hit(r.vehicleNumber, needle)
             || phoneHit(r.userPhone, digits) || phoneHit(r.driverPhone, digits)
             || hit(r.pickupAddress, needle) || hit(r.destinationAddress, needle);
@@ -139,7 +142,7 @@ const rideResult = (r, why = null) => ({
     kind: 'ride',
     id: r.id,
     title: shortRideId(r.id),
-    subtitle: [plainOrNull(r.userName), plainOrNull(r.driverName), r.status].filter(Boolean).join(' · '),
+    subtitle: [plainOrNull(r.userName) || plainOrNull(r.userEmail), plainOrNull(r.driverName), r.status].filter(Boolean).join(' · '),
     detail: [r.pickupAddress, r.destinationAddress ?? r.destAddress].filter(Boolean).join(' → '),
     path: `/rides?ride=${r.id}`,
     why,
