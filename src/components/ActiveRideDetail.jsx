@@ -26,6 +26,16 @@ import { plainOrNull } from '../lib/pii';
  * that does not exist, and a button that cannot act is worse than no button.
  */
 
+// The approach route is re-fetched when the driver crosses a grid cell of
+// roughly this size, rather than on every position update. Directions is
+// billed per request and the car reports every few seconds; snapping the
+// request origin to a grid turns a continuous stream into a handful of calls
+// per approach, while the live position is still prepended to the drawn path
+// so the line stays attached to the car between refreshes.
+const APPROACH_GRID_DEGREES = 0.00225; // ~250 m
+
+const snapToGrid = (value) => Math.round(value / APPROACH_GRID_DEGREES) * APPROACH_GRID_DEGREES;
+
 const Panel = ({ title, icon: Icon, children, className = '', action = null }) => (
     <section className={`p-3.5 border rounded-xl bg-surface border-line ${className}`}>
         {title && (
@@ -91,6 +101,7 @@ export default function ActiveRideDetail({ ride, position, passenger, trail, act
     const [cancelling, setCancelling] = useState(false);
     const [route, setRoute] = useState(null);
     const [customer, setCustomer] = useState(null);
+    const [approachRoute, setApproachRoute] = useState(null);
 
     const customerId = ride?.customerId ?? null;
 
@@ -135,6 +146,28 @@ export default function ActiveRideDetail({ ride, position, passenger, trail, act
     }, [pickupLat, pickupLng, destLat, destLng, routeKey]);
 
     const activeRoute = route?.key === routeKey ? route : null;
+
+    const showApproachFetch = ride && AWAITING_STATUSES.includes(ride.status)
+        && position && Number.isFinite(position.latitude) && Number.isFinite(pickupLat);
+
+    // Road route for the approach leg. The origin is snapped to a grid so this
+    // only re-runs once the driver has actually travelled, and fetchRoute
+    // caches by rounded endpoints on top of that.
+    const anchorLat = showApproachFetch ? snapToGrid(position.latitude) : null;
+    const anchorLng = showApproachFetch ? snapToGrid(position.longitude) : null;
+    const approachKey = `${anchorLat},${anchorLng}>${pickupLat},${pickupLng}`;
+
+    useEffect(() => {
+        let cancelled = false;
+        if (![anchorLat, anchorLng, pickupLat, pickupLng].every(Number.isFinite)) return undefined;
+
+        fetchRoute({ lat: anchorLat, lng: anchorLng }, { lat: pickupLat, lng: pickupLng })
+            .then((result) => {
+                if (!cancelled) setApproachRoute({ key: approachKey, ...(result ?? {}) });
+            });
+
+        return () => { cancelled = true; };
+    }, [anchorLat, anchorLng, pickupLat, pickupLng, approachKey]);
 
     // Ride fields win when present (older rides carry them); the user record
     // fills the gap for everything written by the current app.
@@ -210,13 +243,23 @@ export default function ActiveRideDetail({ ride, position, passenger, trail, act
     // Driver to pickup, drawn only while they are still on their way there.
     // Once the ride is under way the driver has passed the pickup, and a line
     // running back to it is a connection to somewhere nobody is going.
-    const approach = AWAITING_STATUSES.includes(ride.status)
-        && position && Number.isFinite(position.latitude) && Number.isFinite(pickupLat)
-        ? [
-            { lat: position.latitude, lng: position.longitude },
-            { lat: pickupLat, lng: pickupLng },
-        ]
-        : null;
+    const showApproach = AWAITING_STATUSES.includes(ride.status)
+        && position && Number.isFinite(position.latitude) && Number.isFinite(pickupLat);
+
+    const approachPath = approachRoute?.key === approachKey ? approachRoute.path : null;
+
+    const approach = !showApproach
+        ? null
+        : approachPath
+            // The fetched route starts at the snapped grid origin, which the
+            // car has already driven past. Prepending the live position keeps
+            // the line joined to the arrow instead of starting a block away.
+            ? [{ lat: position.latitude, lng: position.longitude }, ...approachPath]
+            // No road route available: the two points joined, as before.
+            : [
+                { lat: position.latitude, lng: position.longitude },
+                { lat: pickupLat, lng: pickupLng },
+            ];
     const startedAt = ride.startedAt ?? ride.acceptedAt ?? ride.requestTime;
 
     return (
