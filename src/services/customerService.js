@@ -1,4 +1,4 @@
-import { collection, getDocs, query, orderBy, doc, updateDoc, limit, startAfter } from 'firebase/firestore';
+import { collection, getDocs, getDoc, query, orderBy, doc, updateDoc, limit, startAfter } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const ITEMS_PER_PAGE = 10;
@@ -57,5 +57,33 @@ export const updateCustomerDetails = async (customerId, updatedData) => {
     } catch (error) {
         console.error("Error updating customer: ", error);
         throw error;
+    }
+};
+
+/**
+ * One customer by id, cached for the life of the tab.
+ *
+ * The ride document carries only `userId` and `userEmail` -- the rider app
+ * never writes a name or phone onto a ride (see requestRide in
+ * ride_provider.dart). Anything that wants to show who booked has to come
+ * here, and a dispatch screen asks for the same handful of customers
+ * repeatedly, so the result is kept.
+ */
+const customerCache = new Map();
+
+export const fetchCustomerById = async (userId) => {
+    if (!userId) return null;
+    if (customerCache.has(userId)) return customerCache.get(userId);
+
+    try {
+        const snap = await getDoc(doc(db, 'users', userId));
+        const value = snap.exists() ? { id: snap.id, ...snap.data() } : null;
+        customerCache.set(userId, value);
+        return value;
+    } catch (error) {
+        console.error('Customer lookup failed:', error);
+        // Not cached: a permission blip should not poison the entry for the
+        // rest of the session.
+        return null;
     }
 };

@@ -33,8 +33,14 @@ export const normaliseRide = (raw) => {
         // PII arrives encrypted from the apps for some records; plainOrNull
         // returns null for ciphertext so the UI can say "encrypted" rather
         // than printing a base64 blob where a phone number belongs.
+        // The live ride-creation path (requestRide in ride_provider.dart)
+        // writes only userId and userEmail -- never a name or phone. The older
+        // RideRequestService path does write userName/userPhone, so both are
+        // read here and whatever is missing is looked up from users/{userId}
+        // by the component.
         customerName: plainOrNull(raw.userName),
         customerPhone: plainOrNull(raw.userPhone),
+        customerEmail: plainOrNull(raw.userEmail),
         customerId: raw.userId ?? null,
 
         driverId: raw.assignedDriverId ?? null,
