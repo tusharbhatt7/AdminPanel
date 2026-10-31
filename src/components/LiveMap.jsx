@@ -134,6 +134,7 @@ export default function LiveMap({
     markers = [],
     route = null,
     routeIsRoad = true,
+    approach = null,
     trail = null,
     focusId = null,
     onSelect,
@@ -144,6 +145,7 @@ export default function LiveMap({
     const mapsRef = useRef(null);
     const markerRefs = useRef(new Map());
     const routeRef = useRef(null);
+    const approachRef = useRef(null);
     const trailRef = useRef(null);
     const didFitRef = useRef(false);
     const fittedWithRouteRef = useRef(false);
@@ -193,6 +195,7 @@ export default function LiveMap({
             cached.forEach((marker) => { stopGlide(marker); marker.setMap(null); });
             cached.clear();
             routeRef.current?.setMap(null); routeRef.current = null;
+            approachRef.current?.setMap(null); approachRef.current = null;
             trailRef.current?.setMap(null); trailRef.current = null;
             mapRef.current = null;
         };
@@ -411,15 +414,58 @@ export default function LiveMap({
             return;
         }
 
+        // Where the driver has been.
+        //
+        // Solid and in the foreground tone. Two subtler treatments were tried
+        // and both vanished: --c-fg-3 is close to the colour of the roads it
+        // runs along, and dashing it at weight 4 left too little ink to find
+        // on a busy basemap. Yellow is not available either -- that is now the
+        // approach leg, and two yellow lines on one map are one line.
         const options = {
-            strokeColor: token('--c-brand'),
-            strokeOpacity: 0.9,
+            strokeColor: token('--c-fg'),
+            strokeOpacity: 0.7,
             strokeWeight: 3,
         };
 
-        if (trailRef.current) trailRef.current.setPath(trail);
-        else trailRef.current = new maps.Polyline({ ...options, path: trail, map, zIndex: 2 });
+        if (trailRef.current) {
+            trailRef.current.setPath(trail);
+            trailRef.current.setOptions(options);
+        } else {
+            trailRef.current = new maps.Polyline({ ...options, path: trail, map, zIndex: 2 });
+        }
     }, [trail, status]);
+
+    // Driver to pickup, while the driver is still on their way there.
+    //
+    // Drawn straight rather than along roads on purpose. A road route would
+    // re-request directions every few metres the car moves — the cache keys on
+    // ~11m of precision — and bill for each one. The useful fact here is how
+    // far apart the two are and in which direction, which a straight line
+    // carries honestly; it is visibly a connector, not a claimed path.
+    useEffect(() => {
+        const map = mapRef.current;
+        const maps = mapsRef.current;
+        if (!map || !maps) return;
+
+        if (!approach || approach.length < 2) {
+            approachRef.current?.setMap(null);
+            approachRef.current = null;
+            return;
+        }
+
+        const options = {
+            strokeColor: token('--c-brand'),
+            strokeOpacity: 0.95,
+            strokeWeight: 4,
+        };
+
+        if (approachRef.current) {
+            approachRef.current.setPath(approach);
+            approachRef.current.setOptions(options);
+        } else {
+            approachRef.current = new maps.Polyline({ ...options, path: approach, map, zIndex: 3 });
+        }
+    }, [approach, status]);
 
     // Selecting a ride in the list centres it — the one time the view should move.
     useEffect(() => {
