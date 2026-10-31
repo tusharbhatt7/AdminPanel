@@ -1,5 +1,5 @@
-import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore';
-import { ref, onValue, off } from 'firebase/database';
+import { collection, doc, onSnapshot, query, where } from 'firebase/firestore';
+import { ref, onValue, off, get } from 'firebase/database';
 import { db, rtdb } from '../firebase';
 import { ACTIVE_STATUSES, PENDING_STATUSES, toDate } from '../lib/rideStatus';
 
@@ -22,6 +22,14 @@ import { ACTIVE_STATUSES, PENDING_STATUSES, toDate } from '../lib/rideStatus';
 // that keeps sitting confidently on a street corner is worse than one that
 // says it does not know.
 export const STALE_AFTER_MS = 45_000;
+
+// Beyond this, a last-known position stops being information and becomes
+// misinformation. One record in this project is 225 days old and 2,200 km from
+// the city the ride is in; plotting it would put a driver marker in another
+// state and drag the map fit across the country to frame it. Past this age the
+// position is withheld and the age is reported instead — "last seen 81 days
+// ago" is useful, a dot in Tamil Nadu is not.
+export const LAST_KNOWN_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 export const TRACKED_STATUSES = ACTIVE_STATUSES;
 export const TRACKED_WITH_SEARCHING = [...PENDING_STATUSES, ...ACTIVE_STATUSES];
@@ -83,23 +91,29 @@ export const listenDriverPosition = (driverId, onData) => {
 
     const startFallback = () => {
         if (fallbackUnsub) return;
-        fallbackUnsub = onSnapshot(
-            doc(db, 'drivers', driverId),
+        // Watches the same RTDB node the driver app writes. A listener rather
+        // than a one-shot here because the driver may come back mid-ride, and
+        // this is the path that notices.
+        const driverRef = ref(rtdb, `drivers/${driverId}`);
+        const handler = onValue(
+            driverRef,
             (snap) => {
-                const last = snap.data()?.lastLocation;
+                const node = snap.val();
+                const last = node?.lastLocation;
                 onData(normalisePosition(
                     last && {
-                        latitude: last.latitude ?? last.lat,
-                        longitude: last.longitude ?? last.lng,
+                        latitude: last.latitude,
+                        longitude: last.longitude,
                         heading: last.heading,
                         speed: last.speed,
-                        timestamp: toDate(last.updatedAt ?? last.timestamp)?.getTime() ?? null,
+                        timestamp: Number(node.lastActive) || null,
                     },
                     { stale: true },
                 ));
             },
             (error) => console.error('lastLocation fallback failed:', error),
         );
+        fallbackUnsub = () => off(driverRef, 'value', handler);
     };
 
     const handler = onValue(
@@ -145,22 +159,41 @@ export const listenAllDriverPositions = (onData, onError) => {
 /**
  * Last-known position for a driver who is not reporting live.
  *
+ * Reads RTDB `drivers/{id}`, which is where the driver app actually writes it:
+ *
+ *   drivers/{id}/lastLocation  { latitude, longitude, heading, speed }
+ *   drivers/{id}/lastActive    server timestamp, a SIBLING of lastLocation
+ *
+ * This previously read Firestore `drivers/{id}.lastLocation`, a field no app
+ * writes, so the fallback silently returned nothing and every disconnected
+ * driver reported as having never sent a position at all. The two collections
+ * share a name across two databases, which is what made the mistake easy.
+ *
  * A one-shot read rather than a listener: by definition this driver's app is
- * not running, so the value is not going to change while we watch it. Always
- * flagged stale — it is where the driver was, not where they are.
+ * not running, so the value is not going to change while we watch it.
  */
 export const fetchDriverLastLocation = async (driverId) => {
-    if (!driverId) return null;
+    if (!driverId || !rtdb) return null;
     try {
-        const snap = await getDoc(doc(db, 'drivers', driverId));
-        const last = snap.data()?.lastLocation;
+        const snap = await get(ref(rtdb, `drivers/${driverId}`));
+        const node = snap.val();
+        const last = node?.lastLocation;
+        if (!last) return null;
+
+        const seenAt = Number(node.lastActive) || null;
+        // Too old to plot, but the age itself is worth surfacing.
+        if (!seenAt || Date.now() - seenAt > LAST_KNOWN_MAX_AGE_MS) {
+            return { tooOld: true, timestamp: seenAt };
+        }
+
         return normalisePosition(
-            last && {
-                latitude: last.latitude ?? last.lat,
-                longitude: last.longitude ?? last.lng,
+            {
+                latitude: last.latitude,
+                longitude: last.longitude,
                 heading: last.heading,
                 speed: last.speed,
-                timestamp: toDate(last.updatedAt ?? last.timestamp)?.getTime() ?? null,
+                // The timestamp lives beside lastLocation, not inside it.
+                timestamp: seenAt,
             },
             { stale: true },
         );
@@ -204,5 +237,11 @@ export const formatFix = (timestamp, now = 0) => {
     if (seconds < 60) return `${seconds}s ago`;
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m ago`;
-    return `${Math.floor(minutes / 60)}h ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    // Days and months matter here: a presence record in this project is 225
+    // days old, and "5400h ago" is not a number anyone can read.
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    return `${Math.floor(days / 30)}mo ago`;
 };

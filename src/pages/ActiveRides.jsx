@@ -135,7 +135,7 @@ export default function ActiveRides() {
         let changed = false;
 
         for (const [driverId, position] of Object.entries(positions)) {
-            if (position.stale) continue;
+            if (position.stale || !Number.isFinite(position.latitude)) continue;
             const points = trailRef.current[driverId] ?? [];
             const last = points[points.length - 1];
             // Below five metres is receiver noise, and plotting it draws a
